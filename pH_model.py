@@ -60,8 +60,8 @@ class ph_model():
 
     """state space equation"""
     def state_space(self, t, x):
-        ipt = self.U[int(t // self.sample_time)]
-        dis = self.D[int(t // self.sample_time)]
+        ipt = self.U[int(t - 0.1)]
+        dis = self.D[int(t - 0.1)]
 
         dx1 = self.q1/(self.A1*x[2])*(self.W_a1-x[0]) + \
               1/(self.A1*x[2])*(self.W_a3-x[0])*ipt + \
@@ -83,7 +83,7 @@ class ph_model():
 
     """ constraint equation """
     def constraint(self, y):
-        x1, x2, x3 = self.state[0, self.i], self.state[1, self.i], self.state[2, self.i]
+        x1, x2, x3 = self.state[：, self.i]
         res = x1 + 10 ** (y - 14) + 10 ** (-y) + x2 * ((1 + 2*10 ** (y-self.pK2))/(1 + 10 ** (self.pK1 - y) + 10 ** (y - self.pK2)))
         return res
 
