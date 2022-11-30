@@ -60,8 +60,8 @@ class ph_model():
 
     """state space equation"""
     def state_space(self, t, x):
-        ipt = self.U[int(t // self.simulation_time)]
-        dis = self.D[int(t // self.simulation_time)]
+        ipt = self.U[int(t // self.sample_time)]
+        dis = self.D[int(t // self.sample_time)]
 
         dx1 = self.q1/(self.A1*x[2])*(self.W_a1-x[0]) + \
               1/(self.A1*x[2])*(self.W_a3-x[0])*ipt + \
