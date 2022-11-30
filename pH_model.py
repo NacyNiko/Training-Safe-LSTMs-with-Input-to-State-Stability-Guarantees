@@ -89,9 +89,9 @@ class ph_model():
 
     """ calculate y [pH]"""
     def y_cal(self, s):
-        y = []
-        while self.i < len(self.t):
-            y.append(fsolve(s, 7.))
+        y = [7.0]
+        while self.i < len(self.t) - 1:
+            y.append(fsolve(s, y[-1]))
             self.i += 1
         return y
 
