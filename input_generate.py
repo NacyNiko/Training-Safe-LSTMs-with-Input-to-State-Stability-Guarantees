@@ -35,7 +35,7 @@ def input_generate(T, num_pulse):
             for j in range(length, min(T, length+i)):
                 d[j] = 0.005*np.random.randn()
             length += i
-    return u, d
+    return u + d
 
 
 # u, d = input_generate(, [25, 35])
