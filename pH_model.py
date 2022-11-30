@@ -44,8 +44,8 @@ class ph_model():
         # np.random.seed(10)
         # self.U = np.random.rand(10) * 40
         # self.D = np.random.randn(10)
-        self.U, self.D = input_generate.input_generate(self.simulation_time, [25, 35])
-        plt.plot(range(self.simulation_time), self.U + self.D)
+        self.U = input_generate.input_generate(self.simulation_time, [25, 35])
+        plt.plot(range(self.simulation_time), self.U)
         plt.xlabel("time [s]")
         plt.ylabel("input u []")
         plt.show()
@@ -61,7 +61,7 @@ class ph_model():
     """state space equation"""
     def state_space(self, t, x):
         ipt = self.U[int(t - 0.1)]
-        dis = self.D[int(t - 0.1)]
+        dis = self.q2
 
         dx1 = self.q1/(self.A1*x[2])*(self.W_a1-x[0]) + \
               1/(self.A1*x[2])*(self.W_a3-x[0])*ipt + \
