@@ -2,7 +2,7 @@
 # @Time : 2022/11/17 14:55 
 # @Author : Yinan 
 # @File : pH_model.py
-
+import pandas as pd
 from scipy.integrate import solve_bvp, solve_ivp, odeint
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,7 +23,7 @@ class ph_model():
         self.W_b1 = 0
         self.W_a2 = -0.03
         self.W_b2 = 0.03
-        self.W_a3 = 3.05e-3
+        self.W_a3 = -3.05e-3
         self.W_b3 = 5e-5
         self.W_a4 = -4.32e-4
         self.W_b4 = 5.28e-4
@@ -60,6 +60,7 @@ class ph_model():
               1 / (self.A1 * x[2]) * (self.W_a3-x[0]) * ipt + \
               1 / (self.A1 * x[2]) * (self.W_a2-x[0]) * dis
 
+
         dx2 = self.q1/(self.A1 * x[2]) * (self.W_b1-x[1]) + \
               1 / (self.A1 * x[2])*(self.W_b3-x[1]) * ipt + \
               1 / (self.A1 * x[2])*(self.W_b2-x[1]) * dis
@@ -77,14 +78,15 @@ class ph_model():
     """ constraint equation """
     def constraint(self, y):
         x1, x2, x3 = self.state[:, self.i]
-        res = x1 + 10 ** (y - 14) + 10 ** (-y) + x2 * ((1 + 2*10 ** (y-self.pK2))/(1 + 10 ** (self.pK1 - y) + 10 ** (y - self.pK2)))
-        return res
+        return x1 + 10 ** (y - 14) + 10 ** (-y) + x2 * ((1 + 2*10 ** (y-self.pK2))/(1 + 10 ** (self.pK1 - y) + 10 ** (y - self.pK2)))
+
 
     """ calculate y [pH]"""
     def y_cal(self, s):
         self.y = [7.]
         while self.i < len(self.t) - 1:
             self.y.append(fsolve(s, self.y[-1]))
+            print(self.constraint(self.y[-1]))
             self.i += 1
         return self.y
 
@@ -106,9 +108,14 @@ if __name__ == '__main__':
     plt.plot(range(len(state[2])), state[2])
     plt.show()
 
+    # state = pd.DataFrame(state)
+    # state.to_excel(r".\state.xlsx")
     # plot ph value
     y = ph.y_cal(ph.constraint)
-    plt.plot(range(len(y)), y)
+    plt.subplot(211)
+    plt.plot(range(len(ph.U)), ph.U)
+    plt.subplot(212)
+    plt.plot(ph.t, y)
     plt.show()
 
 
