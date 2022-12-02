@@ -2,14 +2,14 @@
 # @Time : 2022/11/17 14:55 
 # @Author : Yinan 
 # @File : pH_model.py
-import pandas as pd
 from scipy.integrate import solve_bvp, solve_ivp, odeint
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
 import input_generate
 
-class ph_model():
+
+class PHSimulator:
     def __init__(self, simulation_time, sample_time):
         """the nominal values of the model parameters"""
         self.z = 11.5
@@ -38,10 +38,6 @@ class ph_model():
 
         """generate input"""
         self.U = input_generate.input_generate(self.simulation_time, [25, 35])
-        plt.plot(range(self.simulation_time), self.U)
-        plt.xlabel("time [s]")
-        plt.ylabel("input u []")
-        plt.show()
 
         """ initial condition"""
         self.x1_0, self.x2_0, self.x3_0 = self.W_a4, self.W_b4, self.h1
@@ -60,7 +56,6 @@ class ph_model():
               1 / (self.A1 * x[2]) * (self.W_a3-x[0]) * ipt + \
               1 / (self.A1 * x[2]) * (self.W_a2-x[0]) * dis
 
-
         dx2 = self.q1/(self.A1 * x[2]) * (self.W_b1-x[1]) + \
               1 / (self.A1 * x[2])*(self.W_b3-x[1]) * ipt + \
               1 / (self.A1 * x[2])*(self.W_b2-x[1]) * dis
@@ -69,57 +64,67 @@ class ph_model():
         return [dx1, dx2, dx3]
 
     """solve ode with solve_ivp"""
-    def ode_sovle(self):
+    def ode_solve(self):
         sol_2 = solve_ivp(self.state_space, t_span=(0, max(self.t)), y0=self.S_0, t_eval=self.t)
         self.state = sol_2.y
         return self.state
-
 
     """ constraint equation """
     def constraint(self, y):
         x1, x2, x3 = self.state[:, self.i]
         return x1 + 10 ** (y - 14) + 10 ** (-y) + x2 * ((1 + 2*10 ** (y-self.pK2))/(1 + 10 ** (self.pK1 - y) + 10 ** (y - self.pK2)))
 
-
     """ calculate y [pH]"""
     def y_cal(self, s):
         self.y = [7.]
         while self.i < len(self.t) - 1:
             self.y.append(fsolve(s, self.y[-1]))
-            print(self.constraint(self.y[-1]))
             self.i += 1
         return self.y
 
 
+def main():
+    # TODO: Add whitenoise to input and output data to prevent overfitting.
+    #   Keep the unnoised data for plotting however.
+    np.random.seed(100)
+
+    training_samples = 4400
+    sampling_time = 10
+
+    simulation_time = sampling_time * training_samples
+
+    ph_simulator = PHSimulator(simulation_time, sampling_time)
+    _ = ph_simulator.ode_solve()
+    ph_calc = np.array(ph_simulator.y_cal(ph_simulator.constraint))
+
+    u_train = ph_simulator.U + np.random.normal(0, 0.01, size=ph_simulator.U.shape)
+    print('u_train', u_train.shape)
+    y_train = ph_calc + np.random.normal(0, 0.01, size=ph_calc.shape)
+    print('y_train', y_train.shape)
+
+    u_mean = np.mean(u_train)
+    u_dev = (np.max(u_train) - np.min(u_train)) / 2
+
+    def normalize(u):
+        return (u - u_mean) / u_dev
+
+    u_train_normed = normalize(u_train)
+
+    fig, ax = plt.subplots(2, sharex='all')
+    ax[0].plot(
+        range(ph_simulator.simulation_time),
+        np.hstack(u_train_normed),
+        color='C0'
+    )
+    ax[1].plot(ph_simulator.t, np.hstack(y_train), color='C1')
+
+    ax[0].set_ylabel('Input')
+    ax[1].set_ylabel('PH')
+    fig.suptitle('States')
+    ax[-1].set_xlabel('time [s]')
+
+    plt.show()
+
 
 if __name__ == '__main__':
-    """set simulation time"""
-    simulation_time = 25000
-
-    ph = ph_model(simulation_time, 10)
-    state = ph.ode_sovle()
-
-    # plot state
-    plt.subplot(311)
-    plt.plot(range(len(state[0])), state[0])
-    plt.subplot(312)
-    plt.plot(range(len(state[1])), state[1])
-    plt.subplot(313)
-    plt.plot(range(len(state[2])), state[2])
-    plt.show()
-
-    # state = pd.DataFrame(state)
-    # state.to_excel(r".\state.xlsx")
-    # plot ph value
-    y = ph.y_cal(ph.constraint)
-    plt.subplot(211)
-    plt.plot(range(len(ph.U)), ph.U)
-    plt.subplot(212)
-    plt.plot(ph.t, y)
-    plt.show()
-
-
-"""
-1. the relation between y and pH value.
-2. input scale
-"""
+    main()
