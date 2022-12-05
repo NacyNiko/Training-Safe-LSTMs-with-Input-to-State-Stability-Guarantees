@@ -23,7 +23,7 @@ class PHSimulator:
         self.W_b1 = 0
         self.W_a2 = -0.03
         self.W_b2 = 0.03
-        self.W_a3 = 3.05e-3  # original number was -3.05e-3
+        self.W_a3 = - 3.05e-3
         self.W_b3 = 5e-5
         self.W_a4 = -4.32e-4
         self.W_b4 = 5.28e-4
@@ -98,9 +98,7 @@ def main():
     ph_calc = np.array(ph_simulator.y_cal(ph_simulator.constraint))
 
     u_train = ph_simulator.U + np.random.normal(0, 0.01, size=ph_simulator.U.shape)
-    print('u_train', u_train.shape)
     y_train = ph_calc + np.random.normal(0, 0.01, size=ph_calc.shape)
-    print('y_train', y_train.shape)
 
     u_mean = np.mean(u_train)
     u_dev = (np.max(u_train) - np.min(u_train)) / 2
