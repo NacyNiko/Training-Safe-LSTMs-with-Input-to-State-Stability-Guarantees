@@ -2,7 +2,7 @@
 # @Time : 2022/11/17 14:55 
 # @Author : Yinan 
 # @File : pH_model.py
-from scipy.integrate import solve_bvp, solve_ivp, odeint
+from scipy.integrate import solve_ivp
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
@@ -23,7 +23,7 @@ class PHSimulator:
         self.W_b1 = 0
         self.W_a2 = -0.03
         self.W_b2 = 0.03
-        self.W_a3 = -3.05e-3
+        self.W_a3 = 3.05e-3  # original number was -3.05e-3
         self.W_b3 = 5e-5
         self.W_a4 = -4.32e-4
         self.W_b4 = 5.28e-4
