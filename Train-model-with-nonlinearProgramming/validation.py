@@ -71,16 +71,16 @@ def main():
     W = model.x
 
     """ load validation set: 2250 samples """
-    data_input = pd.read_csv("./val/validation_input.csv", header=None).iloc[:, 1]
-    y_true = pd.read_csv("./val/validation_output.csv", header=None).iloc[:, 1]
+    data_input = pd.read_csv("validation_input.csv", header=None).iloc[:, 1]
+    y_true = pd.read_csv("validation_output.csv", header=None).iloc[:, 1]
 
     """ calculate y_val """
     y_val = validate(W, data_input)
 
     """ plot """
     plt.figure()
-    plt.plot([*range(len(data_input) - 1)], y_val[1:], color='b', label='Prediction')
-    plt.plot([*range(len(data_input) - 1)], y_true[1:], color='r', label='Ground Truth')
+    plt.plot([*range(len(data_input))], y_val, color='b', label='Prediction')
+    plt.plot([*range(len(data_input))], y_true, color='r', label='Ground Truth')
 
     # calculate FIT
     fit_ = FIT(y_val, y_true)
