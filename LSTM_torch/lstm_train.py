@@ -81,14 +81,14 @@ def nrmse(y, y_hat): # normalization to y
 
 def main():
     """ hyperparameter I"""
-    train = False
+    train = True
     seq_len = 5
     batch_size = 64
     hidden_size = 5
     max_epochs = 100
     INPUT_FEATURES_NUM = 2
     OUTPUT_FEATURES_NUM = 1
-    tol = 5e-5
+    tol = 1e-5
 
     # checking if GPU is available
     device = torch.device("cpu")
@@ -104,106 +104,108 @@ def main():
 
         prev_loss = 1000
         # r: weight  threshold
-        r = torch.tensor([1., 1.])
+        r_set = list(torch.tensor([1., 1.]) * i for i in range(0, 11))
         # threshold
-        threshold = torch.tensor([-1., -1.])
+        threshold_set = list(torch.tensor([1., 1.]) * i for i in range(0, 11))
+        for r in r_set:
+            for threshold in threshold_set:
 
-        """ model save path """
-        model_save_path = 'models/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_r_{}_thd_{}.pth'.format(seq_len, batch_size, hidden_size,
-                                                                                   max_epochs, tol, r, threshold)
-        """ data set """
-        data = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv']
-        train_x, train_y = DataCreater(data[0], data[1]).creat_new_dataset(seq_len=seq_len)
-        train_set = GetLoader(train_x, train_y)
-        train_set = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=2)
+                """ model save path """
+                model_save_path = 'models/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_r_{}_thd_{}.pth'.format(seq_len, batch_size, hidden_size,
+                                                                                           max_epochs, tol, r, threshold)
+                """ data set """
+                data = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv']
+                train_x, train_y = DataCreater(data[0], data[1]).creat_new_dataset(seq_len=seq_len)
+                train_set = GetLoader(train_x, train_y)
+                train_set = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=2)
 
-        # ----------------- train -------------------
-        lstm_model = LstmRNN(INPUT_FEATURES_NUM, hidden_size, output_size=OUTPUT_FEATURES_NUM, num_layers=1)
-        criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
+                # ----------------- train -------------------
+                lstm_model = LstmRNN(INPUT_FEATURES_NUM, hidden_size, output_size=OUTPUT_FEATURES_NUM, num_layers=1)
+                criterion = nn.MSELoss()
+                optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
 
-        lstm_model.to(device)
-        criterion.to(device)
-        print('LSTM model:', lstm_model)
-        print('model.parameters:', lstm_model.parameters)
+                lstm_model.to(device)
+                criterion.to(device)
+                print('LSTM model:', lstm_model)
+                print('model.parameters:', lstm_model.parameters)
 
-        break_flag = False
-        for epoch in range(max_epochs):
-            for batch_cases, labels in train_set:
-                batch_cases = batch_cases.transpose(0, 1)
-                batch_cases = batch_cases.transpose(0, 2).to(torch.float32).to(device)
-                output = lstm_model(batch_cases).to(torch.float32).to(device)
-                labels = labels.to(torch.float32).to(device)
+                break_flag = False
+                for epoch in range(max_epochs):
+                    for batch_cases, labels in train_set:
+                        batch_cases = batch_cases.transpose(0, 1)
+                        batch_cases = batch_cases.transpose(0, 2).to(torch.float32).to(device)
+                        output = lstm_model(batch_cases).to(torch.float32).to(device)
+                        labels = labels.to(torch.float32).to(device)
 
-                # calculate loss
-                reg = regularization_term(lstm_model.lstm.parameters(), hidden_size, r, threshold)
-                loss_ = criterion(output, labels)
-                loss = loss_ + reg
+                        # calculate loss
+                        reg = regularization_term(lstm_model.lstm.parameters(), hidden_size, r, threshold)
+                        loss_ = criterion(output, labels)
+                        loss = loss_ + reg
 
-                """ backpropagation """
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                        """ backpropagation """
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
 
-                if loss < prev_loss:
-                    torch.save(lstm_model.state_dict(), 'lstm_model.pt')  # save model parameters to files
-                    prev_loss = loss
+                        if loss < prev_loss:
+                            torch.save(lstm_model.state_dict(), 'lstm_model.pt')  # save model parameters to files
+                            prev_loss = loss
 
-                if loss.item() < tol:
-                    break_flag = True
-                    print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, max_epochs, loss.item()))
-                    print("The loss value is reached")
-                    break
-                elif (epoch + 1) % 10 == 0:
-                    print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, max_epochs, loss.item()))
-            if break_flag:
-                break
-        torch.save(lstm_model.state_dict(), model_save_path)
+                        if loss.item() < tol:
+                            break_flag = True
+                            print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, max_epochs, loss.item()))
+                            print("The loss value is reached")
+                            break
+                        elif (epoch + 1) % 10 == 0:
+                            print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, max_epochs, loss.item()))
+                    if break_flag:
+                        break
+                torch.save(lstm_model.state_dict(), model_save_path)
 
-    else:
-        """ eval """
-        data_t, n_t = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv'], 'train'
-        data_v, n_v = [r'../data/val/val_input_noise.csv', r'../data/val/val_output_noise.csv'], 'val'
-        net = LstmRNN(2, hidden_size, output_size=1, num_layers=1)
-
-        models = os.listdir('./models')
-
-        for model in models:
-            load_path = './models/' + model
-            net.load_state_dict(torch.load(load_path))
-
-            net.eval()
-            net.to(device)
-
-            f, ax = plt.subplots(2, 1)
-            f.suptitle('Model: ' + model[:-4])
-            i = 0
-            for data, n in [[data_t, n_t], [data_v, n_v]]:
-                data_x, data_y = DataCreater(data[0], data[1]).creat_new_dataset(
-                    seq_len=seq_len)
-                data_set = GetLoader(data_x, data_y)
-
-                data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=2)
-                predictions = list()
-
-                with torch.no_grad():
-                    for batch_case, label in data_set:
-                        label.to(device)
-                        batch_case = batch_case.transpose(0, 1)
-                        batch_case = batch_case.transpose(0, 2).to(torch.float32).to(device)
-                        predict = net(batch_case).to(torch.float32).to(device)
-                        predictions.append(predict.squeeze(0).squeeze(0).cpu())
-
-                fit_score = nrmse(data_y, torch.tensor(predictions))
-
-                ax[i].plot(predictions, color='m', label='pred', alpha=0.8)
-                ax[i].plot(data_y, color='c', label='real', linestyle='--', alpha=0.5)
-                ax[i].tick_params(labelsize=5)
-                ax[i].legend(loc='best')
-                ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
-                i += 1
-            plt.savefig('./results/{}.jpg'.format(model[:-4]), bbox_inches='tight', dpi=500)
-        # plt.show()
+    # else:
+    #     """ eval """
+    #     data_t, n_t = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv'], 'train'
+    #     data_v, n_v = [r'../data/val/val_input_noise.csv', r'../data/val/val_output_noise.csv'], 'val'
+    #     net = LstmRNN(2, hidden_size, output_size=1, num_layers=1)
+    #
+    #     models = os.listdir('./models')
+    #
+    #     for model in models:
+    #         load_path = './models/' + model
+    #         net.load_state_dict(torch.load(load_path))
+    #
+    #         net.eval()
+    #         net.to(device)
+    #
+    #         f, ax = plt.subplots(2, 1)
+    #         f.suptitle('Model: ' + model[:-4])
+    #         i = 0
+    #         for data, n in [[data_t, n_t], [data_v, n_v]]:
+    #             data_x, data_y = DataCreater(data[0], data[1]).creat_new_dataset(
+    #                 seq_len=seq_len)
+    #             data_set = GetLoader(data_x, data_y)
+    #
+    #             data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=2)
+    #             predictions = list()
+    #
+    #             with torch.no_grad():
+    #                 for batch_case, label in data_set:
+    #                     label.to(device)
+    #                     batch_case = batch_case.transpose(0, 1)
+    #                     batch_case = batch_case.transpose(0, 2).to(torch.float32).to(device)
+    #                     predict = net(batch_case).to(torch.float32).to(device)
+    #                     predictions.append(predict.squeeze(0).squeeze(0).cpu())
+    #
+    #             fit_score = nrmse(data_y, torch.tensor(predictions))
+    #
+    #             ax[i].plot(predictions, color='m', label='pred', alpha=0.8)
+    #             ax[i].plot(data_y, color='c', label='real', linestyle='--', alpha=0.5)
+    #             ax[i].tick_params(labelsize=5)
+    #             ax[i].legend(loc='best')
+    #             ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
+    #             i += 1
+    #         plt.savefig('./results/{}.jpg'.format(model[:-4]), bbox_inches='tight', dpi=500)
+    #     # plt.show()
 
 if __name__ == '__main__':
     main()
