@@ -8,6 +8,13 @@ import pandas as pd
 import numpy as np
 
 
+def normalize(arr):
+    _max = np.max(arr)
+    _min = np.min(arr)
+    _range = _max - _min
+    return (arr - _min) / _range
+
+
 class DataCreater:
     # data path
     def __init__(self, train_x_path, train_y_path):
@@ -40,7 +47,6 @@ class DataCreater:
         return x_list[1:, :, :], y_list[1:]
 
 
-
 class GetLoader(torch.utils.data.Dataset):
     def __init__(self, data_root, data_label):
         self.data = data_root
@@ -53,4 +59,5 @@ class GetLoader(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.data)
+
 

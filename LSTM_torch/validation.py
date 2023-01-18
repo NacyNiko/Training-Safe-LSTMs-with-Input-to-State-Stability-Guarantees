@@ -4,11 +4,14 @@
 # @File : validation.py
 import torch
 import numpy as np
+import pandas as pd
 from torch import nn
 import os
 import matplotlib.pyplot as plt
-from utilities import DataCreater, GetLoader
+from mpl_toolkits import mplot3d
+from utilities import DataCreater, GetLoader, normalize
 from torch.utils.data import DataLoader
+
 
 
 class LstmRNN(nn.Module):
@@ -36,6 +39,9 @@ class Validator:
         self.num_layers = None
         self.device = device
 
+        self.l_r = np.array(sum(list([i] * 11 for i in range(0, 11)), []))
+        self.l_thd = np.array(list(range(0, 11)) * 11)
+        self.l_c = []
     @staticmethod
     def load_data():
         data_t, n_t = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv'], 'train'
@@ -61,37 +67,41 @@ class Validator:
         model.to(self.device)
         return model
 
-    def evaluate(self, model, name, data_t, data_v, seq_len=5):
-        f, ax = plt.subplots(2, 1)
+    def evaluate(self, model, name, data_t, data_v, seq_len=5, save_plot=False):
+        _, r, thd = name.split('tensor')
+        c1, c2 = self.evaluate_constraint(model)
 
-        i = 0
-        for data, n in [data_t, data_v]:
-            data_x, data_y = DataCreater(data[0], data[1]).creat_new_dataset(
-                seq_len=seq_len)
-            data_set = GetLoader(data_x, data_y)
+        self.l_c.append((float(c1), float(c2)))
 
-            data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
-            predictions = list()
+        if save_plot:
+            f, ax = plt.subplots(2, 1)
+            i = 0
+            for data, n in [data_t, data_v]:
+                data_x, data_y = DataCreater(data[0], data[1]).creat_new_dataset(
+                    seq_len=seq_len)
+                data_set = GetLoader(data_x, data_y)
 
-            with torch.no_grad():
-                for batch_case, label in data_set:
-                    label.to(self.device)
-                    batch_case = batch_case.transpose(0, 1)
-                    batch_case = batch_case.transpose(0, 2).to(torch.float32).to(self.device)
-                    predict = model(batch_case).to(torch.float32).to(self.device)
-                    predictions.append(predict.squeeze(0).squeeze(0).cpu())
+                data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
+                predictions = list()
 
-            fit_score = self.nrmse(data_y, torch.tensor(predictions))
+                with torch.no_grad():
+                    for batch_case, label in data_set:
+                        label.to(self.device)
+                        batch_case = batch_case.transpose(0, 1)
+                        batch_case = batch_case.transpose(0, 2).to(torch.float32).to(self.device)
+                        predict = model(batch_case).to(torch.float32).to(self.device)
+                        predictions.append(predict.squeeze(0).squeeze(0).cpu())
 
-            c1, c2 = self.evaluate_constraint(model)
-            f.suptitle('Model: ' + name[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
-            ax[i].plot(predictions, color='m', label='pred', alpha=0.8)
-            ax[i].plot(data_y, color='c', label='real', linestyle='--', alpha=0.5)
-            ax[i].tick_params(labelsize=5)
-            ax[i].legend(loc='best')
-            ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
-            i += 1
-        plt.savefig('./results{}.jpg'.format(name[8:-4]), bbox_inches='tight', dpi=500)
+                fit_score = self.nrmse(data_y, torch.tensor(predictions))
+                f.suptitle('Model: ' + name[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
+                ax[i].plot(predictions, color='m', label='pred', alpha=0.8)
+                ax[i].plot(data_y, color='c', label='real', linestyle='--', alpha=0.5)
+                ax[i].tick_params(labelsize=5)
+                ax[i].legend(loc='best')
+                ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
+                i += 1
+            plt.savefig('./results{}.jpg'.format(name[8:-4]), bbox_inches='tight', dpi=500)
+
 
     def evaluate_constraint(self, model):
         def constraint(paras, hidden_size=self.hidden_size, r=None, threshold=None):  # paras = model.lstm.parameters()  [W, U, b1, b2]
@@ -127,18 +137,37 @@ class Validator:
         return c1, c2
 
 
-validator = Validator(device='cuda')
-data_train, data_val = validator.load_data()
-LSTMmodel = validator.create_model(2, 5, 1, 1)
-file = './models/'
-models = os.listdir(file)
-for model in models:
-    path = file + model
-    LSTMmodel = validator.load_model(LSTMmodel, path)
-    validator.evaluate(LSTMmodel, path, data_train, data_val)
+def main(if_filter=True):
+    validator = Validator(device='cuda')
+    data_train, data_val = validator.load_data()
+    lstmmodel = validator.create_model(2, 5, 1, 1)
+    file = './models/'
+    models = os.listdir(file)
+    for model in models:
+        path = file + model
+        lstmmodel = validator.load_model(lstmmodel, path)
+        validator.evaluate(lstmmodel, path, data_train, data_val)
 
-print('-----------------------------------------')
+    if if_filter:
+        idx = validator.l_r * validator.l_thd
+        r = validator.l_r[idx != 0]
+        thd = validator.l_thd[idx != 0]
+        c = pd.DataFrame(validator.l_c)[idx != 0]
+    else:
+        r = validator.l_r
+        thd = validator.l_thd
+        c = pd.DataFrame(validator.l_c)
+
+    ax_ = plt.axes(projection='3d')
+    ax_.scatter3D(r, thd, c.iloc[:, 0], c=c.iloc[:, 0], s=500*normalize(c.iloc[:, 1]) if if_filter else 100)  # min: -0.9983   max:-0.9955
+                                                                                        # smaller dot: more negative
+
+    ax_.set_xlabel('ratio')
+    ax_.set_ylabel('threshold')
+    ax_.set_zlabel('c1')
+    plt.show()
+    print('-------------Finish---------------------')
 
 
-
-
+if __name__ == '__main__':
+    main(False)
