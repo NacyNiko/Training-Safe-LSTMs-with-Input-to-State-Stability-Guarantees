@@ -41,86 +41,72 @@ class LstmRNN(nn.Module):
         x = x.view(s, b, -1)
         return x[-1, :, :]
 
-# check if reg satisifies after training
-def regularization_term(paras, hidden_size,  r, threshold):  # paras = model.lstm.parameters()  [W, U, b1, b2]
-    parameters = list()
-    for param in paras:
-        parameters.append(param)
-    weight_ih = parameters[0]
-    weight_hh = parameters[1]
-    bias = parameters[2] + parameters[3]
 
-    W_o = weight_ih[-hidden_size:, :]
-    U_o = weight_hh[-hidden_size:, :]
+class IssLstmTrainer:
+    def __init__(self, seq_len=5, input_size=2, hidden_size=5, output_size=1, num_layer=1, batch_size=64, max_epochs=100, tol=1e-5, ratio=[(2,2)], threshold=[(1,1)]):
+        self.seq_len = seq_len
+        self.input_size = input_size
+        self.output_size = output_size
+        self.hidden_size = hidden_size
+        self.num_layer = num_layer
+        self.batch_size = batch_size
+        self.max_epochs = max_epochs
+        self.tol = tol
+        self.ratio = torch.tensor(ratio)
+        self.threshold = torch.tensor(threshold)
 
-    b_o = bias[-hidden_size:].unsqueeze(1)
+    @staticmethod
+    def nrmse(y, y_hat):  # normalization to y
+        y = y.squeeze(1)
+        return np.sqrt(1 / y.shape[0]) * torch.norm(y - y_hat)
 
-    W_f = weight_ih[hidden_size:2*hidden_size, :]
-    U_f = weight_hh[hidden_size:2*hidden_size, :]
-    b_f = bias[hidden_size:2*hidden_size].unsqueeze(1)
+    def regularization_term(self, paras, r, threshold):  # paras = model.lstm.parameters()  [W, U, b1, b2]
+        hidden_size = self.hidden_size
+        parameters = list()
+        for param in paras:
+            parameters.append(param)
+        weight_ih = parameters[0]
+        weight_hh = parameters[1]
+        bias = parameters[2] + parameters[3]
 
-    W_i = weight_ih[:hidden_size, :]
-    U_i = weight_hh[:hidden_size, :]
-    b_i = bias[:hidden_size].unsqueeze(1)
+        W_o = weight_ih[-hidden_size:, :]
+        U_o = weight_hh[-hidden_size:, :]
 
-    U_c = weight_hh[2 * hidden_size: 3 * hidden_size, :]
+        b_o = bias[-hidden_size:].unsqueeze(1)
 
-    con1 = (1 + torch.sigmoid(torch.norm(torch.hstack((W_o, U_o, b_o)), torch.inf))) * \
-           torch.sigmoid(torch.norm(torch.hstack((W_f, U_f, b_f)), torch.inf)) - 1
-    con2 = (1 + torch.sigmoid(torch.norm(torch.hstack((W_o, U_o, b_o)), torch.inf))) * \
-           torch.sigmoid(torch.norm(torch.hstack((W_i, U_i, b_i)), torch.inf)) * torch.norm(U_c, 1) - 1
-    return r[0] * torch.relu(con1 + threshold[0]) + r[1] * torch.relu(con2 + threshold[1])
+        W_f = weight_ih[hidden_size:2*hidden_size, :]
+        U_f = weight_hh[hidden_size:2*hidden_size, :]
+        b_f = bias[hidden_size:2*hidden_size].unsqueeze(1)
+
+        W_i = weight_ih[:hidden_size, :]
+        U_i = weight_hh[:hidden_size, :]
+        b_i = bias[:hidden_size].unsqueeze(1)
+
+        U_c = weight_hh[2 * hidden_size: 3 * hidden_size, :]
+
+        con1 = (1 + torch.sigmoid(torch.norm(torch.hstack((W_o, U_o, b_o)), torch.inf))) * \
+               torch.sigmoid(torch.norm(torch.hstack((W_f, U_f, b_f)), torch.inf)) - 1
+        con2 = (1 + torch.sigmoid(torch.norm(torch.hstack((W_o, U_o, b_o)), torch.inf))) * \
+               torch.sigmoid(torch.norm(torch.hstack((W_i, U_i, b_i)), torch.inf)) * torch.norm(U_c, 1) - 1
+        return r[0] * torch.relu(con1 + threshold[0]) + r[1] * torch.relu(con2 + threshold[1])
     # return torch.dot(r, torch.relu((torch.tensor([con1, con2]) + threshold)))
 
-def FIT(y, y_hat):
-    return 100 * (1 - (torch.norm(y - y_hat)) / torch.norm(y) / y.shape[0])
-
-def nrmse(y, y_hat): # normalization to y
-    y = y.squeeze(1)
-    return np.sqrt(1/y.shape[0]) * torch.norm(y-y_hat)
-
-def main():
-    """ hyperparameter I"""
-    train = True
-    seq_len = 5
-    batch_size = 64
-    hidden_size = 5
-    max_epochs = 100
-    INPUT_FEATURES_NUM = 2
-    OUTPUT_FEATURES_NUM = 1
-    tol = 1e-5
-
-    # checking if GPU is available
-    device = torch.device("cpu")
-    use_gpu = torch.cuda.is_available()
-
-    if train:
-        """ hyperparameter II"""
-        if use_gpu:
-            device = torch.device("cuda:0")
+    def train_begin(self, device='cuda:0' if torch.cuda.is_available() else 'cpu', ):
+        if device == 'cuda:0':
             print('Training on GPU.')
         else:
             print('No GPU available, training on CPU.')
 
-        prev_loss = 1000
-        # r: weight  threshold
-        r_set = list(torch.tensor([1., 1.]) * i for i in range(0, 11))
-        # threshold
-        threshold_set = list(torch.tensor([1., 1.]) * i for i in range(0, 11))
-        for r in r_set:
-            for threshold in threshold_set:
-
-                """ model save path """
-                model_save_path = 'models/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_r_{}_thd_{}.pth'.format(seq_len, batch_size, hidden_size,
-                                                                                           max_epochs, tol, r, threshold)
+        for r in self.ratio:
+            for thd in self.threshold:
                 """ data set """
                 data = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv']
-                train_x, train_y = DataCreater(data[0], data[1]).creat_new_dataset(seq_len=seq_len)
+                train_x, train_y = DataCreater(data[0], data[1]).creat_new_dataset(seq_len=self.seq_len)
                 train_set = GetLoader(train_x, train_y)
-                train_set = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=2)
+                train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=False, num_workers=2)
 
                 # ----------------- train -------------------
-                lstm_model = LstmRNN(INPUT_FEATURES_NUM, hidden_size, output_size=OUTPUT_FEATURES_NUM, num_layers=1)
+                lstm_model = LstmRNN(self.input_size, self.hidden_size, output_size=self.output_size, num_layers=self.num_layer)
                 criterion = nn.MSELoss()
                 optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
 
@@ -130,7 +116,8 @@ def main():
                 print('model.parameters:', lstm_model.parameters)
 
                 break_flag = False
-                for epoch in range(max_epochs):
+                loss_prev = None
+                for epoch in range(self.max_epochs):
                     for batch_cases, labels in train_set:
                         batch_cases = batch_cases.transpose(0, 1)
                         batch_cases = batch_cases.transpose(0, 2).to(torch.float32).to(device)
@@ -138,29 +125,136 @@ def main():
                         labels = labels.to(torch.float32).to(device)
 
                         # calculate loss
-                        reg = regularization_term(lstm_model.lstm.parameters(), hidden_size, r, threshold)
+                        reg = self.regularization_term(lstm_model.lstm.parameters(), r, thd)
                         loss_ = criterion(output, labels)
-                        loss = loss_ + reg
 
+                        # loss__ = loss_ + reg
+                        # loss = reg / loss__ * loss_ + loss_ / loss__ * reg
+                        loss = loss_ + reg
                         """ backpropagation """
                         optimizer.zero_grad()
                         loss.backward()
                         optimizer.step()
 
-                        if loss < prev_loss:
-                            torch.save(lstm_model.state_dict(), 'lstm_model.pt')  # save model parameters to files
-                            prev_loss = loss
-
-                        if loss.item() < tol:
+                        if loss.item() < self.tol:
                             break_flag = True
-                            print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, max_epochs, loss.item()))
+                            print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                             print("The loss value is reached")
                             break
-                        elif (epoch + 1) % 10 == 0:
-                            print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, max_epochs, loss.item()))
+                        elif loss_prev is not None and np.abs(np.mean(loss_prev - loss.item()) / np.mean(loss_prev)) < 1e-6:
+                            break_flag = True
+                            print(np.mean(loss_prev - loss.item()) / np.mean(loss_prev))
+                            print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
+                            print("The loss changes no more")
+                            break
+                        elif (epoch + 1) % 50 == 0:
+                            print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
+                        loss_prev = loss.item()
+
                     if break_flag:
                         break
-                torch.save(lstm_model.state_dict(), model_save_path)
+
+                """ save model """
+                self.save_model(lstm_model, r, thd)
+
+    def save_model(self, model, r, thd):
+        """ model save path """
+        model_save_path = 'models/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_r_{}_thd_{}____.pth'.format(self.seq_len,
+                                                                                               self.batch_size,
+                                                                                               self.hidden_size,
+                                                                                               self.max_epochs,
+                                                                                               self.tol, r, thd)
+
+        torch.save(model.state_dict(), model_save_path)
+
+
+def main():
+    trainer = IssLstmTrainer()
+    trainer.train_begin()
+
+
+
+    # """ hyperparameter I"""
+    # train = True
+    # seq_len = 5
+    # batch_size = 64
+    # hidden_size = 5
+    # max_epochs = 100
+    # INPUT_FEATURES_NUM = 2
+    # OUTPUT_FEATURES_NUM = 1
+    # tol = 1e-5
+    #
+    # # checking if GPU is available
+    # device = torch.device("cpu")
+    # use_gpu = torch.cuda.is_available()
+    #
+    # if train:
+    #     """ hyperparameter II"""
+    #     if use_gpu:
+    #         device = torch.device("cuda:0")
+    #         print('Training on GPU.')
+    #     else:
+    #         print('No GPU available, training on CPU.')
+    #
+    #     prev_loss = 1000
+    #     # r: weight  threshold
+    #     r_set = list(torch.tensor([1., 1.]) * i for i in range(0, 11))
+    #     # threshold
+    #     threshold_set = list(torch.tensor([1., 1.]) * i for i in range(0, 11))
+    #     for r in r_set:
+    #         for threshold in threshold_set:
+    #
+    #             """ model save path """
+    #             model_save_path = 'models/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_r_{}_thd_{}.pth'.format(seq_len, batch_size, hidden_size,
+    #                                                                                        max_epochs, tol, r, threshold)
+    #             """ data set """
+    #             data = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv']
+    #             train_x, train_y = DataCreater(data[0], data[1]).creat_new_dataset(seq_len=seq_len)
+    #             train_set = GetLoader(train_x, train_y)
+    #             train_set = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=False, num_workers=2)
+    #
+    #             # ----------------- train -------------------
+    #             lstm_model = LstmRNN(INPUT_FEATURES_NUM, hidden_size, output_size=OUTPUT_FEATURES_NUM, num_layers=1)
+    #             criterion = nn.MSELoss()
+    #             optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
+    #
+    #             lstm_model.to(device)
+    #             criterion.to(device)
+    #             print('LSTM model:', lstm_model)
+    #             print('model.parameters:', lstm_model.parameters)
+    #
+    #             break_flag = False
+    #             for epoch in range(max_epochs):
+    #                 for batch_cases, labels in train_set:
+    #                     batch_cases = batch_cases.transpose(0, 1)
+    #                     batch_cases = batch_cases.transpose(0, 2).to(torch.float32).to(device)
+    #                     output = lstm_model(batch_cases).to(torch.float32).to(device)
+    #                     labels = labels.to(torch.float32).to(device)
+    #
+    #                     # calculate loss
+    #                     reg = regularization_term(lstm_model.lstm.parameters(), hidden_size, r, threshold)
+    #                     loss_ = criterion(output, labels)
+    #                     loss = loss_ + reg
+    #
+    #                     """ backpropagation """
+    #                     optimizer.zero_grad()
+    #                     loss.backward()
+    #                     optimizer.step()
+    #
+    #                     if loss < prev_loss:
+    #                         torch.save(lstm_model.state_dict(), 'lstm_model.pt')  # save model parameters to files
+    #                         prev_loss = loss
+    #
+    #                     if loss.item() < tol:
+    #                         break_flag = True
+    #                         print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, max_epochs, loss.item()))
+    #                         print("The loss value is reached")
+    #                         break
+    #                     elif (epoch + 1) % 10 == 0:
+    #                         print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, max_epochs, loss.item()))
+    #                 if break_flag:
+    #                     break
+    #             torch.save(lstm_model.state_dict(), model_save_path)
 
     # else:
     #     """ eval """

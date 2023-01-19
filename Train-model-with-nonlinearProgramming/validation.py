@@ -91,8 +91,6 @@ def main():
             data_input = pd.read_csv("../data/val/val_input_clean.csv", header=None).iloc[:, 1]
             y_true = pd.read_csv("../data/val/val_output_clean.csv", header=None).iloc[:, 1]
 
-
-
     """ calculate y_val """
     y_val = validate(W, data_input)
 

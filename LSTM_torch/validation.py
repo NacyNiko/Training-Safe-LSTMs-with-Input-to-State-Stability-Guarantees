@@ -32,15 +32,15 @@ class LstmRNN(nn.Module):
 
 
 class Validator:
-    def __init__(self, device='cpu'):
+    def __init__(self,  r, threshold, device='cpu'):
         self.input_size = None
         self.hidden_size = None
         self.output_size = None
         self.num_layers = None
         self.device = device
 
-        self.l_r = np.array(sum(list([i] * 11 for i in range(0, 11)), []))
-        self.l_thd = np.array(list(range(0, 11)) * 11)
+        self.l_r = np.array(sum(list([i] * len(r) for i in range(0, len(r))), []))
+        self.l_thd = np.array(list(range(0, len(threshold))) * len(threshold))
         self.l_c = []
     @staticmethod
     def load_data():
@@ -137,8 +137,8 @@ class Validator:
         return c1, c2
 
 
-def main(if_filter=True):
-    validator = Validator(device='cuda')
+def main(if_filter=True):   # if_filter: ignore whether r=0 or threshold=0
+    validator = Validator([*range(11)], [*range(11)], device='cuda')
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model(2, 5, 1, 1)
     file = './models/'
