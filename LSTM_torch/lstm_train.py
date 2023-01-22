@@ -60,7 +60,21 @@ class IssLstmTrainer:
         y = y.squeeze(1)
         return np.sqrt(1 / y.shape[0]) * torch.norm(y - y_hat)
 
-    def regularization_term(self, paras, r, threshold):  # paras = model.lstm.parameters()  [W, U, b1, b2]
+    @staticmethod
+    def regularization_term(cons, r, threshold):  # paras = model.lstm.parameters()  [W, U, b1, b2]
+        con1, con2 = cons[0], cons[1]
+        return r[0] * torch.relu(con1 + threshold[0]) + r[1] * torch.relu(con2 + threshold[1])
+
+    @staticmethod
+    def log_barrier(cons, t):
+        barrier = 0
+        for con in cons:
+            if con < 0:
+                barrier += - (1/t) * torch.log(-con)
+            else:
+                return torch.inf
+        return barrier
+    def constraints(self, paras):
         hidden_size = self.hidden_size
         parameters = list()
         for param in paras:
@@ -74,9 +88,9 @@ class IssLstmTrainer:
 
         b_o = bias[-hidden_size:].unsqueeze(1)
 
-        W_f = weight_ih[hidden_size:2*hidden_size, :]
-        U_f = weight_hh[hidden_size:2*hidden_size, :]
-        b_f = bias[hidden_size:2*hidden_size].unsqueeze(1)
+        W_f = weight_ih[hidden_size:2 * hidden_size, :]
+        U_f = weight_hh[hidden_size:2 * hidden_size, :]
+        b_f = bias[hidden_size:2 * hidden_size].unsqueeze(1)
 
         W_i = weight_ih[:hidden_size, :]
         U_i = weight_hh[:hidden_size, :]
@@ -88,10 +102,9 @@ class IssLstmTrainer:
                torch.sigmoid(torch.norm(torch.hstack((W_f, U_f, b_f)), torch.inf)) - 1
         con2 = (1 + torch.sigmoid(torch.norm(torch.hstack((W_o, U_o, b_o)), torch.inf))) * \
                torch.sigmoid(torch.norm(torch.hstack((W_i, U_i, b_i)), torch.inf)) * torch.norm(U_c, 1) - 1
-        return r[0] * torch.relu(con1 + threshold[0]) + r[1] * torch.relu(con2 + threshold[1])
-    # return torch.dot(r, torch.relu((torch.tensor([con1, con2]) + threshold)))
+        return [con1, con2]
 
-    def train_begin(self, device='cuda:0' if torch.cuda.is_available() else 'cpu', ):
+    def train_begin(self, device='cuda:0' if torch.cuda.is_available() else 'cpu', reg_methode='vanilla'):
         if device == 'cuda:0':
             print('Training on GPU.')
         else:
@@ -125,12 +138,14 @@ class IssLstmTrainer:
                         labels = labels.to(torch.float32).to(device)
 
                         # calculate loss
-                        reg = self.regularization_term(lstm_model.lstm.parameters(), r, thd)
+                        constraints = self.constraints(lstm_model.lstm.parameters())
+                        if reg_methode == 'log_barrier':
+                            reg = self.log_barrier(constraints)
+                        else:
+                            reg = self.regularization_term(constraints, r, thd)
                         loss_ = criterion(output, labels)
-
-                        # loss__ = loss_ + reg
-                        # loss = reg / loss__ * loss_ + loss_ / loss__ * reg
                         loss = loss_ + reg
+
                         """ backpropagation """
                         optimizer.zero_grad()
                         loss.backward()
@@ -170,7 +185,7 @@ class IssLstmTrainer:
 
 def main():
     trainer = IssLstmTrainer()
-    trainer.train_begin()
+    trainer.train_begin(reg_methode='log_barrier')
 
 
 if __name__ == '__main__':

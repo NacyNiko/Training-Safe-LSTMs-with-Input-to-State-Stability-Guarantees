@@ -138,15 +138,16 @@ class Validator:
 
 
 def main(if_filter=True):   # if_filter: ignore whether r=0 or threshold=0
-    validator = Validator([*range(11)], [*range(11)], device='cuda')
+    validator = Validator([2], [1], device='cuda')
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model(2, 5, 1, 1)
     file = './models/'
-    models = os.listdir(file)
+    # models = os.listdir(file)
+    models = ['model_sl_5_bs_64_hs_5_ep_100_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1])____.pth']
     for model in models:
         path = file + model
         lstmmodel = validator.load_model(lstmmodel, path)
-        validator.evaluate(lstmmodel, path, data_train, data_val)
+        validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
 
     if if_filter:
         idx = validator.l_r * validator.l_thd
@@ -170,4 +171,4 @@ def main(if_filter=True):   # if_filter: ignore whether r=0 or threshold=0
 
 
 if __name__ == '__main__':
-    main(False)
+    main()
