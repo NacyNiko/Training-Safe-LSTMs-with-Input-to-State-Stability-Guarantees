@@ -26,11 +26,12 @@ import os
 
 # Define LSTM Neural Networks
 class LstmRNN(nn.Module):
-    def __init__(self, input_size, hidden_size=5, output_size=1, num_layers=1):
+    def __init__(self, input_size=2, hidden_size=5, output_size=1, num_layers=1, mean=-10., std=4.):
         super().__init__()
         self.hidden_size = hidden_size
-
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers)  #  [seq_len, batch_size, input_size] --> [seq_len, batch_size, hidden_size]
+        init_dic = torch.load('./models/model_sl_5_bs_64_hs_5_ep_100_tol_1e-05_r_tensor([2., 2.])_thd_tensor([1., 1.]).pth')
+        self.lstm.load_state_dict(init_dic)
         self.linear1 = nn.Linear(hidden_size, output_size)  #  [seq_len, batch_size, hidden_size] --> [seq_len, batch_size, output_size]
 
     def forward(self, _x):
@@ -54,6 +55,8 @@ class IssLstmTrainer:
         self.tol = tol
         self.ratio = torch.tensor(ratio)
         self.threshold = torch.tensor(threshold)
+        self.old_model = None
+        self.temp_lstm = LstmRNN().lstm
 
     @staticmethod
     def nrmse(y, y_hat):  # normalization to y
@@ -66,14 +69,51 @@ class IssLstmTrainer:
         return r[0] * torch.relu(con1 + threshold[0]) + r[1] * torch.relu(con2 + threshold[1])
 
     @staticmethod
-    def log_barrier(cons, t):
+    def log_barrier(cons, t=0.05):
         barrier = 0
         for con in cons:
             if con < 0:
                 barrier += - (1/t) * torch.log(-con)
             else:
-                return torch.inf
+                return torch.tensor(float('inf'))
         return barrier
+
+    def backtracking_line_search(self, params, alpha=0.1, typ='normal'):
+        old_paras = self.flatten_params(self.old_model.lstm.parameters())
+        new_paras = params
+        cons = self.constraints(self.write_flat_params(self.temp_lstm, new_paras))
+        ls = 0
+        bar_loss = self.log_barrier(cons)
+        while torch.isinf(bar_loss):
+            new_paras = alpha * old_paras + (1-alpha) * new_paras
+            cons = self.constraints(self.write_flat_params(self.temp_lstm, new_paras))
+            bar_loss = self.log_barrier(cons)
+            ls += 1
+            if ls == 100:
+                print('maximum search times reached')
+                return bar_loss, new_paras
+        # self.old_model = new_model.load_state_dict(new_paras)
+        return bar_loss, new_paras
+
+    def flatten_params(self, params):
+        views = []
+        for p in params:
+            view = p.flatten(0)
+            views.append(view)
+        return torch.cat(views, 0)
+
+    def write_flat_params(self, lstm, f_params):
+        W_ih = f_params[:40].resize(20, 2)
+        W_hh = f_params[40:140].resize(20, 5)
+        bias1 = f_params[140:160].resize(20,)
+        bias2 = f_params[160:].resize(20,)
+        p_list = [W_ih, W_hh, bias1, bias2]
+        i = 0
+        for p in lstm.parameters():
+            p.data = p_list[i]
+            i += 1
+        return lstm.parameters()
+
     def constraints(self, paras):
         hidden_size = self.hidden_size
         parameters = list()
@@ -117,9 +157,15 @@ class IssLstmTrainer:
                 train_x, train_y = DataCreater(data[0], data[1]).creat_new_dataset(seq_len=self.seq_len)
                 train_set = GetLoader(train_x, train_y)
                 train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=False, num_workers=2)
-
+                init_mean, init_std = -10., 4.
                 # ----------------- train -------------------
                 lstm_model = LstmRNN(self.input_size, self.hidden_size, output_size=self.output_size, num_layers=self.num_layer)
+
+                while torch.isinf(self.log_barrier(self.constraints(lstm_model.lstm.parameters()))):
+                    print('initial weight does not satisfy')
+                    lstm_model = LstmRNN(mean=init_mean-1, std=init_std-0.5)
+
+                self.old_model = lstm_model
                 criterion = nn.MSELoss()
                 optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
 
@@ -127,22 +173,25 @@ class IssLstmTrainer:
                 criterion.to(device)
                 print('LSTM model:', lstm_model)
                 print('model.parameters:', lstm_model.parameters)
-
                 break_flag = False
                 loss_prev = None
                 for epoch in range(self.max_epochs):
                     for batch_cases, labels in train_set:
                         batch_cases = batch_cases.transpose(0, 1)
                         batch_cases = batch_cases.transpose(0, 2).to(torch.float32).to(device)
-                        output = lstm_model(batch_cases).to(torch.float32).to(device)
-                        labels = labels.to(torch.float32).to(device)
 
                         # calculate loss
                         constraints = self.constraints(lstm_model.lstm.parameters())
                         if reg_methode == 'log_barrier':
-                            reg = self.log_barrier(constraints)
+                            flatten_params = self.flatten_params(lstm_model.lstm.parameters())
+                            reg, paras = self.backtracking_line_search(flatten_params, 0.1)
+                            params = self.write_flat_params(self.temp_lstm, flatten_params)
+                            lstm_model.parameters = params
                         else:
                             reg = self.regularization_term(constraints, r, thd)
+
+                        output = lstm_model(batch_cases).to(torch.float32).to(device)
+                        labels = labels.to(torch.float32).to(device)
                         loss_ = criterion(output, labels)
                         loss = loss_ + reg
 
