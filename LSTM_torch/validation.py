@@ -141,9 +141,9 @@ def main(if_filter=True):   # if_filter: ignore whether r=0 or threshold=0
     validator = Validator([2], [1], device='cuda')
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model(2, 5, 1, 1)
-    file = './models/'
+    file = './models/barrier_BLS/'
     # models = os.listdir(file)
-    models = ['model_sl_5_bs_64_hs_5_ep_100_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1])____.pth']
+    models = ['model_sl_5_bs_64_hs_5_ep_500_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1]).pth']
     for model in models:
         path = file + model
         lstmmodel = validator.load_model(lstmmodel, path)

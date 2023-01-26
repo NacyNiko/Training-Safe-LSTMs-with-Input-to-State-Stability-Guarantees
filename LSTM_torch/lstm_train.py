@@ -2,6 +2,7 @@
 # @Time : 2022/12/22 1:01 
 # @Author : Yinan 
 # @File : lstm_train.py
+import copy
 
 import torch
 from torch import nn
@@ -13,14 +14,6 @@ import os
 """
 输入： 2 维度，[t-w:t]的y 以及 [t]的u
 输出： lstm最后一层隐状态经过Linear层的值
-
-训练结果记录：
-    1. 神经元取10， 序列长度5， 最终误差1e-4时过拟合
-    2. 神经元取5， 序列长度5， 最终误差1e-3时欠拟合
-    3. 神经元取5， 序列长度10， 最终误差1e-3时欠拟合
-    4. 神经元取5， 序列长度5， 最终误差1e-4时 结果好
-    5. 神经元取5， 序列长度5， 最终误差1e-5时 结果好
-    
 """
 
 
@@ -30,8 +23,6 @@ class LstmRNN(nn.Module):
         super().__init__()
         self.hidden_size = hidden_size
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers)  #  [seq_len, batch_size, input_size] --> [seq_len, batch_size, hidden_size]
-        init_dic = torch.load('./models/model_sl_5_bs_64_hs_5_ep_100_tol_1e-05_r_tensor([2., 2.])_thd_tensor([1., 1.]).pth')
-        self.lstm.load_state_dict(init_dic)
         self.linear1 = nn.Linear(hidden_size, output_size)  #  [seq_len, batch_size, hidden_size] --> [seq_len, batch_size, output_size]
 
     def forward(self, _x):
@@ -44,7 +35,7 @@ class LstmRNN(nn.Module):
 
 
 class IssLstmTrainer:
-    def __init__(self, seq_len=5, input_size=2, hidden_size=5, output_size=1, num_layer=1, batch_size=64, max_epochs=100, tol=1e-5, ratio=[(2,2)], threshold=[(1,1)]):
+    def __init__(self, seq_len=5, input_size=2, hidden_size=5, output_size=1, num_layer=1, batch_size=64, max_epochs=500, tol=1e-5, ratio=[(2,2)], threshold=[(1,1)]):
         self.seq_len = seq_len
         self.input_size = input_size
         self.output_size = output_size
@@ -55,7 +46,10 @@ class IssLstmTrainer:
         self.tol = tol
         self.ratio = torch.tensor(ratio)
         self.threshold = torch.tensor(threshold)
-        self.old_model = None
+
+        self.old_model = LstmRNN().to('cuda:0')
+        self.old_model.load_state_dict(torch.load(
+            './models/vanilla/model_sl_5_bs_64_hs_5_ep_100_tol_1e-05_r_tensor([1., 1.])_thd_tensor([0., 0.]).pth'))
         self.temp_lstm = LstmRNN().lstm
 
     @staticmethod
@@ -78,22 +72,32 @@ class IssLstmTrainer:
                 return torch.tensor(float('inf'))
         return barrier
 
-    def backtracking_line_search(self, params, alpha=0.1, typ='normal'):
-        old_paras = self.flatten_params(self.old_model.lstm.parameters())
-        new_paras = params
-        cons = self.constraints(self.write_flat_params(self.temp_lstm, new_paras))
-        ls = 0
+    def backtracking_line_search(self, new_model, alpha=0.1, typ='normal'):
+        cons = self.constraints(new_model.lstm.parameters())
         bar_loss = self.log_barrier(cons)
+        ls = 0
         while torch.isinf(bar_loss):
-            new_paras = alpha * old_paras + (1-alpha) * new_paras
-            cons = self.constraints(self.write_flat_params(self.temp_lstm, new_paras))
+            new_params = self.flatten_params(new_model.lstm.parameters())
+            old_params = self.flatten_params(self.old_model.lstm.parameters())
+            new_paras = alpha * old_params + (1-alpha) * new_params
+            self.temp_lstm = self.write_flat_params(self.temp_lstm, new_paras)
+            cons = self.constraints(self.temp_lstm.parameters())
             bar_loss = self.log_barrier(cons)
             ls += 1
-            if ls == 100:
-                print('maximum search times reached')
-                return bar_loss, new_paras
-        # self.old_model = new_model.load_state_dict(new_paras)
-        return bar_loss, new_paras
+            new_model.lstm = self.update_model(self.temp_lstm, new_model.lstm)
+            if ls == 500:
+                # print('maximum search times reached')
+                raise 'maximum search times reached'
+        self.old_model.lstm = self.update_model(new_model.lstm, self.old_model.lstm)
+        return bar_loss, new_model.lstm.state_dict()
+
+    def update_model(self, model1, model2):
+        dict1 = model1.state_dict()
+        dict2 = model2.state_dict()
+        for par1, par2 in zip(dict1, dict2):
+            dict2[par2] = dict1[par1]
+        model2.load_state_dict(dict2)
+        return model2
 
     def flatten_params(self, params):
         views = []
@@ -112,7 +116,7 @@ class IssLstmTrainer:
         for p in lstm.parameters():
             p.data = p_list[i]
             i += 1
-        return lstm.parameters()
+        return lstm
 
     def constraints(self, paras):
         hidden_size = self.hidden_size
@@ -160,12 +164,6 @@ class IssLstmTrainer:
                 init_mean, init_std = -10., 4.
                 # ----------------- train -------------------
                 lstm_model = LstmRNN(self.input_size, self.hidden_size, output_size=self.output_size, num_layers=self.num_layer)
-
-                while torch.isinf(self.log_barrier(self.constraints(lstm_model.lstm.parameters()))):
-                    print('initial weight does not satisfy')
-                    lstm_model = LstmRNN(mean=init_mean-1, std=init_std-0.5)
-
-                self.old_model = lstm_model
                 criterion = nn.MSELoss()
                 optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
 
@@ -183,17 +181,19 @@ class IssLstmTrainer:
                         # calculate loss
                         constraints = self.constraints(lstm_model.lstm.parameters())
                         if reg_methode == 'log_barrier':
-                            flatten_params = self.flatten_params(lstm_model.lstm.parameters())
-                            reg, paras = self.backtracking_line_search(flatten_params, 0.1)
-                            params = self.write_flat_params(self.temp_lstm, flatten_params)
-                            lstm_model.parameters = params
+                            _, new_params = self.backtracking_line_search(copy.deepcopy(lstm_model), 0.1)
+                            for w in new_params:
+                                lstm_model.lstm.state_dict()[w].copy_(new_params[w])
+                            constraints = self.constraints(lstm_model.lstm.parameters())
+                            reg_loss = self.log_barrier(constraints)
                         else:
-                            reg = self.regularization_term(constraints, r, thd)
+                            reg_loss = self.regularization_term(constraints, r, thd)
 
                         output = lstm_model(batch_cases).to(torch.float32).to(device)
                         labels = labels.to(torch.float32).to(device)
                         loss_ = criterion(output, labels)
-                        loss = loss_ + reg
+                        # not in one compute graph
+                        loss = loss_ + 0.5 * reg_loss
 
                         """ backpropagation """
                         optimizer.zero_grad()
@@ -205,7 +205,7 @@ class IssLstmTrainer:
                             print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                             print("The loss value is reached")
                             break
-                        elif loss_prev is not None and np.abs(np.mean(loss_prev - loss.item()) / np.mean(loss_prev)) < 1e-6:
+                        elif loss_prev is not None and np.abs(np.mean(loss_prev - loss.item()) / np.mean(loss_prev)) < 1e-8:
                             break_flag = True
                             print(np.mean(loss_prev - loss.item()) / np.mean(loss_prev))
                             print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
@@ -223,7 +223,7 @@ class IssLstmTrainer:
 
     def save_model(self, model, r, thd):
         """ model save path """
-        model_save_path = 'models/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_r_{}_thd_{}____.pth'.format(self.seq_len,
+        model_save_path = 'models/barrier_BLS/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_r_{}_thd_{}.pth'.format(self.seq_len,
                                                                                                self.batch_size,
                                                                                                self.hidden_size,
                                                                                                self.max_epochs,
@@ -242,3 +242,16 @@ if __name__ == '__main__':
 
 
 
+
+"""
+1. self.old_model 初始化为之前训练的模型，满足log barrier ！= inf
+2. 实例化 lstm_model
+3. BLS:
+    3.1: 验证lstm_model 的Log barrier是否 = inf
+        yes：3.1.1: 两个模型参数flatten
+             3.1.2: 更新模型
+             3.1.3: write_flatten_params
+             3.1.4: 验证log barrier
+        no: self.old_model = copy.deepcopy(lstm_model) 
+
+"""
