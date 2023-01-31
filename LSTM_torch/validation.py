@@ -32,14 +32,14 @@ class LstmRNN(nn.Module):
 
 
 class Validator:
-    def __init__(self,  r, threshold, device='cpu'):
+    def __init__(self,  gamma, threshold, device='cpu'):
         self.input_size = None
         self.hidden_size = None
         self.output_size = None
         self.num_layers = None
         self.device = device
 
-        self.l_r = np.array(sum(list([i] * len(r) for i in range(0, len(r))), []))
+        self.l_r = np.array(sum(list([i] * len(gamma) for i in range(0, len(gamma))), []))
         self.l_thd = np.array(list(range(0, len(threshold))) * len(threshold))
         self.l_c = []
     @staticmethod
@@ -68,7 +68,7 @@ class Validator:
         return model
 
     def evaluate(self, model, name, data_t, data_v, seq_len=5, save_plot=False):
-        _, r, thd = name.split('tensor')
+        _, gamma, thd = name.split('tensor')
         c1, c2 = self.evaluate_constraint(model)
 
         self.l_c.append((float(c1), float(c2)))
@@ -104,7 +104,7 @@ class Validator:
 
 
     def evaluate_constraint(self, model):
-        def constraint(paras, hidden_size=self.hidden_size, r=None, threshold=None):  # paras = model.lstm.parameters()  [W, U, b1, b2]
+        def constraint(paras, hidden_size=self.hidden_size, gamma=None, threshold=None):  # paras = model.lstm.parameters()  [W, U, b1, b2]
             parameters = list()
             for param in paras:
                 parameters.append(param)
@@ -137,38 +137,53 @@ class Validator:
         return c1, c2
 
 
-def main(if_filter=True):   # if_filter: ignore whether r=0 or threshold=0
-    validator = Validator([2], [1], device='cuda')
+def main(if_filter=True, plt3D=True):   # if_filter: ignore whether gamma=0 or threshold=0
+    # validator = Validator([2], [1], device='cuda')
+    validator = Validator([*range(11)], [*range(11)], device='cuda')
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model(2, 5, 1, 1)
-    file = './models/barrier_BLS/'
-    # models = os.listdir(file)
-    models = ['model_sl_5_bs_64_hs_5_ep_500_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1]).pth']
+    file = './models/vanilla/'
+    models = os.listdir(file)
+    # models = ['model_sl_5_bs_64_hs_5_ep_500_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1]).pth']
     for model in models:
         path = file + model
         lstmmodel = validator.load_model(lstmmodel, path)
-        validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
+        validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=False)
 
     if if_filter:
         idx = validator.l_r * validator.l_thd
-        r = validator.l_r[idx != 0]
+        gamma = validator.l_r[idx != 0]
         thd = validator.l_thd[idx != 0]
         c = pd.DataFrame(validator.l_c)[idx != 0]
     else:
-        r = validator.l_r
+        gamma = validator.l_r
         thd = validator.l_thd
         c = pd.DataFrame(validator.l_c)
 
-    ax_ = plt.axes(projection='3d')
-    ax_.scatter3D(r, thd, c.iloc[:, 0], c=c.iloc[:, 0], s=500*normalize(c.iloc[:, 1]) if if_filter else 100)  # min: -0.9983   max:-0.9955
-                                                                                        # smaller dot: more negative
+    if plt3D:
+        ax_ = plt.axes(projection='3d')
+        ax_.scatter3D(gamma, thd, c.iloc[:, 0], c=c.iloc[:, 0], s=500*normalize(c.iloc[:, 1]) if if_filter else 100)  # min: -0.9983   max:-0.9955
+                                                                                            # smaller dot: more negative
 
-    ax_.set_xlabel('ratio')
-    ax_.set_ylabel('threshold')
-    ax_.set_zlabel('c1')
+        ax_.set_xlabel('ratio')
+        ax_.set_ylabel('threshold')
+        ax_.set_zlabel('c1')
+    else:
+        c.reset_index(drop=True, inplace=True)
+        df = pd.concat([pd.Series(gamma), pd.Series(thd), c], axis=1)
+        df.columns = ['r', 'thd', 'c1', 'c2']
+        df = df.groupby('thd')
+        fig, ax = plt.subplots(2, 1, sharex=True)
+        for i, dg in df:
+            ax[0].plot(dg.loc[:, 'r'], dg.loc[:, 'c1'], label=i)
+            ax[1].plot(dg.loc[:, 'r'], dg.loc[:, 'c2'], label=i)
+        ax[0].set_title('constraint 1')
+        ax[1].set_title('constraint 2')
+        lines, labels = fig.axes[-1].get_legend_handles_labels()
+        fig.legend(lines, labels, bbox_to_anchor=(0.74, 0.96), ncol=4, framealpha=1)
     plt.show()
     print('-------------Finish---------------------')
 
 
 if __name__ == '__main__':
-    main()
+    main(plt3D=False)

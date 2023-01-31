@@ -35,7 +35,8 @@ class LstmRNN(nn.Module):
 
 
 class IssLstmTrainer:
-    def __init__(self, seq_len=5, input_size=2, hidden_size=5, output_size=1, num_layer=1, batch_size=64, max_epochs=500, tol=1e-5, ratio=[(2,2)], threshold=[(1,1)]):
+    def __init__(self, seq_len=5, input_size=2, hidden_size=5, output_size=1, num_layer=1, batch_size=64,
+                 max_epochs=1000, tol=1e-5, gamma_list=[(2,2)], threshold=[(1,1)]):
         self.seq_len = seq_len
         self.input_size = input_size
         self.output_size = output_size
@@ -44,7 +45,7 @@ class IssLstmTrainer:
         self.batch_size = batch_size
         self.max_epochs = max_epochs
         self.tol = tol
-        self.ratio = torch.tensor(ratio)
+        self.gamma_list = torch.tensor(gamma_list)
         self.threshold = torch.tensor(threshold)
 
         self.old_model = LstmRNN().to('cuda:0')
@@ -58,9 +59,9 @@ class IssLstmTrainer:
         return np.sqrt(1 / y.shape[0]) * torch.norm(y - y_hat)
 
     @staticmethod
-    def regularization_term(cons, r, threshold):  # paras = model.lstm.parameters()  [W, U, b1, b2]
+    def regularization_term(cons, threshold):  # paras = model.lstm.parameters()  [W, U, b1, b2]
         con1, con2 = cons[0], cons[1]
-        return r[0] * torch.relu(con1 + threshold[0]) + r[1] * torch.relu(con2 + threshold[1])
+        return torch.relu(con1 + threshold[0]) + torch.relu(con2 + threshold[1])
 
     @staticmethod
     def log_barrier(cons, t=0.05):
@@ -71,6 +72,9 @@ class IssLstmTrainer:
             else:
                 return torch.tensor(float('inf'))
         return barrier
+    @staticmethod
+    def curriculum_learning(cons, grad):
+        con1, con2 = cons[0], cons[1]
 
     def backtracking_line_search(self, new_model, alpha=0.1, typ='normal'):
         cons = self.constraints(new_model.lstm.parameters())
@@ -148,93 +152,94 @@ class IssLstmTrainer:
                torch.sigmoid(torch.norm(torch.hstack((W_i, U_i, b_i)), torch.inf)) * torch.norm(U_c, 1) - 1
         return [con1, con2]
 
-    def train_begin(self, device='cuda:0' if torch.cuda.is_available() else 'cpu', reg_methode='vanilla'):
+    def train_begin(self, device='cuda:0' if torch.cuda.is_available() else 'cpu'
+                    , reg_methode='vanilla', curriculum_learning=False, gamma=1):
         if device == 'cuda:0':
             print('Training on GPU.')
         else:
             print('No GPU available, training on CPU.')
 
-        for r in self.ratio:
-            for thd in self.threshold:
-                """ data set """
-                data = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv']
-                train_x, train_y = DataCreater(data[0], data[1]).creat_new_dataset(seq_len=self.seq_len)
-                train_set = GetLoader(train_x, train_y)
-                train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=False, num_workers=2)
-                init_mean, init_std = -10., 4.
-                # ----------------- train -------------------
-                lstm_model = LstmRNN(self.input_size, self.hidden_size, output_size=self.output_size, num_layers=self.num_layer)
-                criterion = nn.MSELoss()
-                optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
+        if curriculum_learning:
+        # for gamma in self.gamma_list:
+        #     for thd in self.threshold:
+            """ data set """
+            data = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv']
+            train_x, train_y = DataCreater(data[0], data[1]).creat_new_dataset(seq_len=self.seq_len)
+            train_set = GetLoader(train_x, train_y)
+            train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=False, num_workers=2)
+            # ----------------- train -------------------
+            lstm_model = LstmRNN(self.input_size, self.hidden_size, output_size=self.output_size, num_layers=self.num_layer)
+            criterion = nn.MSELoss()
+            optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
 
-                lstm_model.to(device)
-                criterion.to(device)
-                print('LSTM model:', lstm_model)
-                print('model.parameters:', lstm_model.parameters)
-                break_flag = False
-                loss_prev = None
-                for epoch in range(self.max_epochs):
-                    for batch_cases, labels in train_set:
-                        batch_cases = batch_cases.transpose(0, 1)
-                        batch_cases = batch_cases.transpose(0, 2).to(torch.float32).to(device)
+            lstm_model.to(device)
+            criterion.to(device)
+            print('LSTM model:', lstm_model)
+            print('model.parameters:', lstm_model.parameters)
+            break_flag = False
+            loss_prev = None
+            for epoch in range(self.max_epochs):
+                for batch_cases, labels in train_set:
+                    batch_cases = batch_cases.transpose(0, 1)
+                    batch_cases = batch_cases.transpose(0, 2).to(torch.float32).to(device)
 
-                        # calculate loss
+                    # calculate loss
+                    constraints = self.constraints(lstm_model.lstm.parameters())
+                    if reg_methode == 'log_barrier_BLS':
+                        _, new_params = self.backtracking_line_search(copy.deepcopy(lstm_model), 0.1)
+                        for w in new_params:
+                            lstm_model.lstm.state_dict()[w].copy_(new_params[w])
                         constraints = self.constraints(lstm_model.lstm.parameters())
-                        if reg_methode == 'log_barrier':
-                            _, new_params = self.backtracking_line_search(copy.deepcopy(lstm_model), 0.1)
-                            for w in new_params:
-                                lstm_model.lstm.state_dict()[w].copy_(new_params[w])
-                            constraints = self.constraints(lstm_model.lstm.parameters())
-                            reg_loss = self.log_barrier(constraints)
-                        else:
-                            reg_loss = self.regularization_term(constraints, r, thd)
+                        reg_loss = self.log_barrier(constraints)
+                    else:
+                        reg_loss = self.regularization_term(constraints, thd)
+                    output = lstm_model(batch_cases).to(torch.float32).to(device)
+                    labels = labels.to(torch.float32).to(device)
+                    loss_ = criterion(output, labels)
 
-                        output = lstm_model(batch_cases).to(torch.float32).to(device)
-                        labels = labels.to(torch.float32).to(device)
-                        loss_ = criterion(output, labels)
-                        # not in one compute graph
-                        loss = loss_ + 0.5 * reg_loss
+                    loss = loss_ + gamma * reg_loss
 
-                        """ backpropagation """
-                        optimizer.zero_grad()
-                        loss.backward()
-                        optimizer.step()
+                    """ backpropagation """
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
 
-                        if loss.item() < self.tol:
-                            break_flag = True
-                            print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
-                            print("The loss value is reached")
-                            break
-                        elif loss_prev is not None and np.abs(np.mean(loss_prev - loss.item()) / np.mean(loss_prev)) < 1e-8:
-                            break_flag = True
-                            print(np.mean(loss_prev - loss.item()) / np.mean(loss_prev))
-                            print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
-                            print("The loss changes no more")
-                            break
-                        elif (epoch + 1) % 50 == 0:
-                            print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
-                        loss_prev = loss.item()
-
-                    if break_flag:
+                    if loss.item() < self.tol:
+                        break_flag = True
+                        print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
+                        print("The loss value is reached")
                         break
+                    elif loss_prev is not None and np.abs(np.mean(loss_prev - loss.item()) / np.mean(loss_prev)) < 1e-10:
+                        break_flag = True
+                        print(np.mean(loss_prev - loss.item()) / np.mean(loss_prev))
+                        print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
+                        print("The loss changes no more")
+                        break
+                    elif (epoch + 1) % 50 == 0:
+                        print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
+                    loss_prev = loss.item()
 
-                """ save model """
-                self.save_model(lstm_model, r, thd)
+                if break_flag:
+                    break
 
-    def save_model(self, model, r, thd):
+            """ save model """
+            self.save_model(lstm_model, reg_methode, gamma, thd)
+
+    def save_model(self, model, methode, gamma, thd):
         """ model save path """
-        model_save_path = 'models/barrier_BLS/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_r_{}_thd_{}.pth'.format(self.seq_len,
+        model_save_path = 'models/{}/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_r_{}_thd_{}.pth'.format(methode
+                                                                                               , self.seq_len,
                                                                                                self.batch_size,
                                                                                                self.hidden_size,
                                                                                                self.max_epochs,
-                                                                                               self.tol, r, thd)
+                                                                                               self.tol, gamma, thd)
 
         torch.save(model.state_dict(), model_save_path)
 
 
 def main():
     trainer = IssLstmTrainer()
-    trainer.train_begin(reg_methode='log_barrier')
+    trainer.train_begin(reg_methode='log_barrier_BLS')
 
 
 if __name__ == '__main__':
