@@ -68,7 +68,7 @@ class Validator:
         return model
 
     def evaluate(self, model, name, data_t, data_v, seq_len=5, save_plot=False):
-        _, gamma, thd = name.split('tensor')
+        # _, gamma, thd = name.split('tensor')
         c1, c2 = self.evaluate_constraint(model)
 
         self.l_c.append((float(c1), float(c2)))
@@ -100,8 +100,7 @@ class Validator:
                 ax[i].legend(loc='best')
                 ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
                 i += 1
-            plt.savefig('./results{}.jpg'.format(name[8:-4]), bbox_inches='tight', dpi=500)
-
+            plt.savefig('./results{}.jpg'.format(name[6:-4]), bbox_inches='tight', dpi=500)
 
     def evaluate_constraint(self, model):
         def constraint(paras, hidden_size=self.hidden_size, gamma=None, threshold=None):  # paras = model.lstm.parameters()  [W, U, b1, b2]
@@ -138,17 +137,17 @@ class Validator:
 
 
 def main(if_filter=True, plt3D=True):   # if_filter: ignore whether gamma=0 or threshold=0
-    # validator = Validator([2], [1], device='cuda')
-    validator = Validator([*range(11)], [*range(11)], device='cuda')
+    validator = Validator([2], [1], device='cuda')
+    # validator = Validator([*range(11)], [*range(11)], device='cuda')
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model(2, 5, 1, 1)
-    file = './models/vanilla/'
+    file = 'models/curriculum_True/relu/'
     models = os.listdir(file)
     # models = ['model_sl_5_bs_64_hs_5_ep_500_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1]).pth']
     for model in models:
         path = file + model
         lstmmodel = validator.load_model(lstmmodel, path)
-        validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=False)
+        validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
 
     if if_filter:
         idx = validator.l_r * validator.l_thd
