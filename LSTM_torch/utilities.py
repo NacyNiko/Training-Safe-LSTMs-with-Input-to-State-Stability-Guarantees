@@ -15,11 +15,58 @@ def normalize(arr):
     return (arr - _min) / _range
 
 
+def cal_constraints(hidden_size, paras, df=None):
+    columns = ['norm i', 'sigmoid norm i', 'norm o', 'sigmoid norm o'
+        , 'norm f', 'sigmoid norm f', 'norm cell state', 'c1', 'c2']
+    hidden_size = hidden_size
+    parameters = list()
+    for param in paras:
+        parameters.append(param)
+    weight_ih = parameters[0]
+    weight_hh = parameters[1]
+    bias = parameters[2] + parameters[3]
+
+    W_o = weight_ih[-hidden_size:, :]
+    U_o = weight_hh[-hidden_size:, :]
+
+    b_o = bias[-hidden_size:].unsqueeze(1)
+
+    W_f = weight_ih[hidden_size:2 * hidden_size, :]
+    U_f = weight_hh[hidden_size:2 * hidden_size, :]
+    b_f = bias[hidden_size:2 * hidden_size].unsqueeze(1)
+
+    W_i = weight_ih[:hidden_size, :]
+    U_i = weight_hh[:hidden_size, :]
+    b_i = bias[:hidden_size].unsqueeze(1)
+
+    U_c = weight_hh[2 * hidden_size: 3 * hidden_size, :]
+
+    norm_ig = torch.norm(torch.hstack((W_i, U_i, b_i)), torch.inf)
+    sigmoid_norm_ig = torch.sigmoid(norm_ig)
+    norm_og = torch.norm(torch.hstack((W_o, U_o, b_o)), torch.inf)
+    sigmoid_norm_og = torch.sigmoid(norm_og)
+    norm_fg = torch.norm(torch.hstack((W_f, U_f, b_f)), torch.inf)
+    sigmoid_norm_fg = torch.sigmoid(norm_fg)
+    norm_cs = torch.norm(U_c, 1)
+
+    con1 = (1 + sigmoid_norm_og) * sigmoid_norm_fg - 1
+    con2 = (1 + sigmoid_norm_og) * sigmoid_norm_ig * norm_cs - 1
+
+    if df is not None:
+        df.loc[len(df.index), columns] = [norm_ig.item(), sigmoid_norm_ig.item(), norm_og.item(), sigmoid_norm_og.item(),
+                                 norm_fg.item(), sigmoid_norm_fg.item(), norm_cs.item(), con1.item(), con2.item()]
+    # TODO: show how does each term change.
+    return [con1, con2], df
+    # TODO: PID strategy
+
+
 class DataCreater:
     # data path
-    def __init__(self, train_x_path, train_y_path):
+    def __init__(self, train_x_path, train_y_path, input_size, output_size):
         self.path_x = train_x_path
         self.path_y = train_y_path
+        self.input_size = input_size
+        self.output_size = output_size
 
     def creat_new_dataset(self, seq_len=20):
         """ read original data """

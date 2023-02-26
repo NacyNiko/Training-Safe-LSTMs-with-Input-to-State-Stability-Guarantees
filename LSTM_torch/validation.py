@@ -9,7 +9,7 @@ from torch import nn
 import os
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
-from utilities import DataCreater, GetLoader, normalize
+from utilities import DataCreater, GetLoader, cal_constraints
 from torch.utils.data import DataLoader
 
 
@@ -32,20 +32,26 @@ class LstmRNN(nn.Module):
 
 
 class Validator:
-    def __init__(self,  gamma, threshold, device='cpu'):
-        self.input_size = None
-        self.hidden_size = None
-        self.output_size = None
-        self.num_layers = None
+    def __init__(self, args, device='cpu'):
+        self.dataset = args.dataset
+        self.input_size = args.input_size
+        self.hidden_size = args.hidden_size
+        self.output_size = args.output_size
+        self.num_layers = args.layers
+        self.seq_len = args.len_sequence
         self.device = device
+        self.cur = args.curriculum_learning
+        self.reg_mth = args.reg_methode
 
-        self.l_r = np.array(sum(list([i] * len(gamma) for i in range(0, len(gamma))), []))
-        self.l_thd = np.array(list(range(0, len(threshold))) * len(threshold))
+        # self.l_r = np.array(sum(list([i] * len(args.gamma) for i in range(0, len(args.gamma))), []))
+        # self.l_thd = np.array(list(range(0, len(args.threshold))) * len(args.threshold))
         self.l_c = []
-    @staticmethod
-    def load_data():
-        data_t, n_t = [r'../data/train/train_input_noise.csv', r'../data/train/train_output_noise.csv'], 'train'
-        data_v, n_v = [r'../data/val/val_input_noise.csv', r'../data/val/val_output_noise.csv'], 'val'
+
+    def load_data(self):
+        data_t, n_t = [r'../data/{}/train/train_input.csv'.format(self.dataset),
+                       r'../data/{}/train/train_output.csv'.format(self.dataset)], 'train'
+        data_v, n_v = [r'../data/{}/val/val_input.csv'.format(self.dataset),
+                       r'../data/{}/val/val_output.csv'.format(self.dataset)], 'val'
         return [data_t, n_t], [data_v, n_v]
 
     @staticmethod
@@ -53,12 +59,8 @@ class Validator:
         y = y.squeeze(1)
         return np.sqrt(1 / y.shape[0]) * torch.norm(y - y_hat)
 
-    def create_model(self, input_size, hidden_size, output_size, num_layers):
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.num_layers = num_layers
-        model = LstmRNN(input_size, hidden_size, output_size, num_layers)
+    def create_model(self):
+        model = LstmRNN(self.input_size, self.hidden_size, self.output_size, self.num_layers)
         return model
 
     def load_model(self, model, path):
@@ -67,7 +69,7 @@ class Validator:
         model.to(self.device)
         return model
 
-    def evaluate(self, model, name, data_t, data_v, seq_len=5, save_plot=False):
+    def evaluate(self, model, path, data_t, data_v, save_plot=False):
         # _, gamma, thd = name.split('tensor')
         c1, c2 = self.evaluate_constraint(model)
 
@@ -78,7 +80,7 @@ class Validator:
             i = 0
             for data, n in [data_t, data_v]:
                 data_x, data_y = DataCreater(data[0], data[1]).creat_new_dataset(
-                    seq_len=seq_len)
+                    seq_len=self.seq_len)
                 data_set = GetLoader(data_x, data_y)
 
                 data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
@@ -93,55 +95,27 @@ class Validator:
                         predictions.append(predict.squeeze(0).squeeze(0).cpu())
 
                 fit_score = self.nrmse(data_y, torch.tensor(predictions))
-                f.suptitle('Model: ' + name[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
+                f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
                 ax[i].plot(predictions, color='m', label='pred', alpha=0.8)
                 ax[i].plot(data_y, color='c', label='real', linestyle='--', alpha=0.5)
                 ax[i].tick_params(labelsize=5)
                 ax[i].legend(loc='best')
                 ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
                 i += 1
-            plt.savefig('./results{}.jpg'.format(name[6:-4]), bbox_inches='tight', dpi=500)
+            plt.savefig('./results{}.jpg'.format(path[6:-4]), bbox_inches='tight', dpi=500)
 
     def evaluate_constraint(self, model):
-        def constraint(paras, hidden_size=self.hidden_size, gamma=None, threshold=None):  # paras = model.lstm.parameters()  [W, U, b1, b2]
-            parameters = list()
-            for param in paras:
-                parameters.append(param)
-            weight_ih = parameters[0]
-            weight_hh = parameters[1]
-            bias = parameters[2] + parameters[3]
-
-            W_o = weight_ih[-hidden_size:, :]
-            U_o = weight_hh[-hidden_size:, :]
-
-            b_o = bias[-hidden_size:].unsqueeze(1)
-
-            W_f = weight_ih[hidden_size:2 * hidden_size, :]
-            U_f = weight_hh[hidden_size:2 * hidden_size, :]
-            b_f = bias[hidden_size:2 * hidden_size].unsqueeze(1)
-
-            W_i = weight_ih[:hidden_size, :]
-            U_i = weight_hh[:hidden_size, :]
-            b_i = bias[:hidden_size].unsqueeze(1)
-
-            U_c = weight_hh[2 * hidden_size: 3 * hidden_size, :]
-
-            con1 = (1 + torch.sigmoid(torch.norm(torch.hstack((W_o, U_o, b_o)), torch.inf))) * \
-                   torch.sigmoid(torch.norm(torch.hstack((W_f, U_f, b_f)), torch.inf)) - 1
-            con2 = (1 + torch.sigmoid(torch.norm(torch.hstack((W_o, U_o, b_o)), torch.inf))) * \
-                   torch.sigmoid(torch.norm(torch.hstack((W_i, U_i, b_i)), torch.inf)) * torch.norm(U_c, 1) - 1
-            return con1, con2
         parameters = model.lstm.parameters()
-        c1, c2 = constraint(parameters)
-        return c1, c2
+        c, _ = cal_constraints(self.hidden_size, parameters)
+        return c[0], c[1]
 
 
-def main(if_filter=True, plt3D=True):   # if_filter: ignore whether gamma=0 or threshold=0
-    validator = Validator([2], [1], device='cuda')
+def main(args, if_filter=True, plt3D=False):   # if_filter: ignore whether gamma=0 or threshold=0
+    validator = Validator(args, device='cuda')
     # validator = Validator([*range(11)], [*range(11)], device='cuda')
     data_train, data_val = validator.load_data()
-    lstmmodel = validator.create_model(2, 5, 1, 1)
-    file = 'models/curriculum_True/relu/'
+    lstmmodel = validator.create_model()
+    file = 'models/curriculum_{}/{}/'.format(args.curriculum_learning, args.reg_methode)
     models = os.listdir(file)
     # models = ['model_sl_5_bs_64_hs_5_ep_500_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1]).pth']
     for model in models:
@@ -149,40 +123,40 @@ def main(if_filter=True, plt3D=True):   # if_filter: ignore whether gamma=0 or t
         lstmmodel = validator.load_model(lstmmodel, path)
         validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
 
-    if if_filter:
-        idx = validator.l_r * validator.l_thd
-        gamma = validator.l_r[idx != 0]
-        thd = validator.l_thd[idx != 0]
-        c = pd.DataFrame(validator.l_c)[idx != 0]
-    else:
-        gamma = validator.l_r
-        thd = validator.l_thd
-        c = pd.DataFrame(validator.l_c)
+    # if if_filter:
+    #     idx = validator.l_r * validator.l_thd
+    #     gamma = validator.l_r[idx != 0]
+    #     thd = validator.l_thd[idx != 0]
+    #     c = pd.DataFrame(validator.l_c)[idx != 0]
+    # else:
+    #     gamma = validator.l_r
+    #     thd = validator.l_thd
+    #     c = pd.DataFrame(validator.l_c)
 
-    if plt3D:
-        ax_ = plt.axes(projection='3d')
-        ax_.scatter3D(gamma, thd, c.iloc[:, 0], c=c.iloc[:, 0], s=500*normalize(c.iloc[:, 1]) if if_filter else 100)  # min: -0.9983   max:-0.9955
-                                                                                            # smaller dot: more negative
-
-        ax_.set_xlabel('ratio')
-        ax_.set_ylabel('threshold')
-        ax_.set_zlabel('c1')
-    else:
-        c.reset_index(drop=True, inplace=True)
-        df = pd.concat([pd.Series(gamma), pd.Series(thd), c], axis=1)
-        df.columns = ['r', 'thd', 'c1', 'c2']
-        df = df.groupby('thd')
-        fig, ax = plt.subplots(2, 1, sharex=True)
-        for i, dg in df:
-            ax[0].plot(dg.loc[:, 'r'], dg.loc[:, 'c1'], label=i)
-            ax[1].plot(dg.loc[:, 'r'], dg.loc[:, 'c2'], label=i)
-        ax[0].set_title('constraint 1')
-        ax[1].set_title('constraint 2')
-        lines, labels = fig.axes[-1].get_legend_handles_labels()
-        fig.legend(lines, labels, bbox_to_anchor=(0.74, 0.96), ncol=4, framealpha=1)
-    plt.show()
+    # if plt3D:
+    #     ax_ = plt.axes(projection='3d')
+    #     ax_.scatter3D(gamma, thd, c.iloc[:, 0], c=c.iloc[:, 0], s=500*normalize(c.iloc[:, 1]) if if_filter else 100)  # min: -0.9983   max:-0.9955
+    #                                                                                         # smaller dot: more negative
+    #
+    #     ax_.set_xlabel('ratio')
+    #     ax_.set_ylabel('threshold')
+    #     ax_.set_zlabel('c1')
+    # else:
+    #     c.reset_index(drop=True, inplace=True)
+    #     df = pd.concat([pd.Series(gamma), pd.Series(thd), c], axis=1)
+    #     df.columns = ['r', 'thd', 'c1', 'c2']
+    #     df = df.groupby('thd')
+    #     fig, ax = plt.subplots(2, 1, sharex=True)
+    #     for i, dg in df:
+    #         ax[0].plot(dg.loc[:, 'r'], dg.loc[:, 'c1'], label=i)
+    #         ax[1].plot(dg.loc[:, 'r'], dg.loc[:, 'c2'], label=i)
+    #     ax[0].set_title('constraint 1')
+    #     ax[1].set_title('constraint 2')
+    #     lines, labels = fig.axes[-1].get_legend_handles_labels()
+    #     fig.legend(lines, labels, bbox_to_anchor=(0.74, 0.96), ncol=4, framealpha=1)
+    # plt.show()
     print('-------------Finish---------------------')
 
 
-if __name__ == '__main__':
-    main(plt3D=False)
+# if __name__ == '__main__':
+#     main(dataset, plt3D=False)
