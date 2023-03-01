@@ -56,11 +56,11 @@ class Validator:
 
     @staticmethod
     def nrmse(y, y_hat):  # normalization to y
-        y = y.squeeze(1)
+        # y = y.squeeze(1)
         return np.sqrt(1 / y.shape[0]) * torch.norm(y - y_hat)
 
     def create_model(self):
-        model = LstmRNN(self.input_size, self.hidden_size, self.output_size, self.num_layers)
+        model = LstmRNN(self.input_size + self.output_size, self.hidden_size, self.output_size, self.num_layers)
         return model
 
     def load_model(self, model, path):
@@ -76,33 +76,67 @@ class Validator:
         self.l_c.append((float(c1), float(c2)))
 
         if save_plot:
-            f, ax = plt.subplots(2, 1)
-            i = 0
-            for data, n in [data_t, data_v]:
-                data_x, data_y = DataCreater(data[0], data[1]).creat_new_dataset(
-                    seq_len=self.seq_len)
-                data_set = GetLoader(data_x, data_y)
+            if self.output_size > 1:
+                for data, n in [data_t, data_v]:
+                    f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n == 'train' else (10, 10))
 
-                data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
-                predictions = list()
+                    data_x, data_y = DataCreater(data[0], data[1], self.input_size, self.output_size).creat_new_dataset(
+                        seq_len=self.seq_len)
+                    data_set = GetLoader(data_x, data_y)
 
-                with torch.no_grad():
-                    for batch_case, label in data_set:
-                        label.to(self.device)
-                        batch_case = batch_case.transpose(0, 1)
-                        batch_case = batch_case.transpose(0, 2).to(torch.float32).to(self.device)
-                        predict = model(batch_case).to(torch.float32).to(self.device)
-                        predictions.append(predict.squeeze(0).squeeze(0).cpu())
+                    data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
+                    predictions = torch.empty(1, self.output_size)
 
-                fit_score = self.nrmse(data_y, torch.tensor(predictions))
-                f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
-                ax[i].plot(predictions, color='m', label='pred', alpha=0.8)
-                ax[i].plot(data_y, color='c', label='real', linestyle='--', alpha=0.5)
-                ax[i].tick_params(labelsize=5)
-                ax[i].legend(loc='best')
-                ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
-                i += 1
-            plt.savefig('./results{}.jpg'.format(path[6:-4]), bbox_inches='tight', dpi=500)
+                    with torch.no_grad():
+                        for batch_case, label in data_set:
+                            label.to(self.device)
+                            batch_case = batch_case.transpose(0, 1)
+                            batch_case = batch_case.transpose(0, 2).to(torch.float32).to(self.device)
+                            predict = model(batch_case).to(torch.float32).to(self.device)
+                            predictions = torch.concat([predictions, predict.cpu()], dim=0)
+
+                    i = 0
+                    while i < self.output_size:
+                        fit_score = self.nrmse(data_y[:, i], torch.tensor(predictions[1:, i]))
+                        f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
+                        ax[i].plot(predictions[1:, i], color='m', label='pred', alpha=0.8)
+                        ax[i].plot(data_y[:, i], color='c', label='real', linestyle='--', alpha=0.5)
+                        ax[i].tick_params(labelsize=5)
+                        ax[i].legend(loc='best')
+                        ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
+                        i += 1
+
+                    plt.savefig('./results{}.jpg'.format(path[6:-4] + n), bbox_inches='tight', dpi=500)
+            else:
+                f, ax = plt.subplots(2, 1)
+                i = 0
+                for data, n in [data_t, data_v]:
+                    data_x, data_y = DataCreater(data[0], data[1], self.input_size,
+                                                 self.output_size).creat_new_dataset(
+                        seq_len=self.seq_len)
+                    data_set = GetLoader(data_x, data_y)
+
+                    data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
+                    predictions = torch.empty(1, self.output_size)
+
+                    with torch.no_grad():
+                        for batch_case, label in data_set:
+                            label.to(self.device)
+                            batch_case = batch_case.transpose(0, 1)
+                            batch_case = batch_case.transpose(0, 2).to(torch.float32).to(self.device)
+                            predict = model(batch_case).to(torch.float32).to(self.device)
+                            predictions = torch.concat([predictions, predict.cpu()], dim=0)
+
+                    fit_score = self.nrmse(data_y[:, :], torch.tensor(predictions[1:, :]))
+                    f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
+                    ax[i].plot(predictions[1:, :], color='m', label='pred', alpha=0.8)
+                    ax[i].plot(data_y[:, :], color='c', label='real', linestyle='--', alpha=0.5)
+                    ax[i].tick_params(labelsize=5)
+                    ax[i].legend(loc='best')
+                    ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
+                    i += 1
+
+                plt.savefig('./results{}.jpg'.format(path[6:-4] + n), bbox_inches='tight', dpi=500)
 
     def evaluate_constraint(self, model):
         parameters = model.lstm.parameters()
@@ -115,7 +149,7 @@ def main(args, if_filter=True, plt3D=False):   # if_filter: ignore whether gamma
     # validator = Validator([*range(11)], [*range(11)], device='cuda')
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model()
-    file = 'models/curriculum_{}/{}/'.format(args.curriculum_learning, args.reg_methode)
+    file = 'models/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning, args.reg_methode)
     models = os.listdir(file)
     # models = ['model_sl_5_bs_64_hs_5_ep_500_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1]).pth']
     for model in models:

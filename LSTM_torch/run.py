@@ -11,20 +11,28 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
-parser.add_argument('--dataset', default='pHdata', choices=['pHdata', 'robot'], help='LSTM dataset')
+parser.add_argument('--dataset', default='robot_inverse', choices=['robot_forward', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
 parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM')
-parser.add_argument('--input_size', default=2, help='input size of LSTM')
-parser.add_argument('--output_size', default=1, help='output size of output layer')
+if parser.parse_args().dataset == 'pHdata':
+    input_size = output_size = 1
+elif parser.parse_args().dataset == 'robot_inverse':
+    input_size, output_size = 18, 6
+elif parser.parse_args().dataset == 'robot_forward':
+    input_size = output_size = 6
+else:
+    raise 'Nonexistent dataset!'
+parser.add_argument('--input_size', default=input_size, help='input size of LSTM')
+parser.add_argument('--output_size', default=output_size, help='output size of output layer')
 parser.add_argument('--layers', default=1, help='number of layers of LSTM')
 parser.add_argument('--batch_size', default=64, help='train batch size')
-parser.add_argument('--epochs', default=100, help='maximum train epochs')
+parser.add_argument('--epochs', default=10, help='maximum train epochs')
 parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss')
 parser.add_argument('--tol_stop', default=1e-10, help='minimum tolerance between 2 epochs')
 parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM')
 
 parser.add_argument(
     '--curriculum_learning', default='PID', choices=[None, '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
-parser.add_argument('--PID_coefficient', default=([3, 5], [0.05, 0.1], [0.1, 0.1]))
+parser.add_argument('--PID_coefficient', default=([10, 10], [0.5, 0.5], [0.1, 0.1]))
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of gamma')
 parser.add_argument('--threshold', default=torch.tensor([0.01, 0.05]), help='value of threshold')

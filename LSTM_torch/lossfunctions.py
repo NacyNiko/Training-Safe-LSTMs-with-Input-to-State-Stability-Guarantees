@@ -46,7 +46,7 @@ class LossBLS(LossFcn):
         self.lstm_model = lstm_model
         self.old_model = copy.deepcopy(lstm_model).to('cuda:0')
         self.old_model.load_state_dict(torch.load(
-            'models/curriculum_PID/vanilla/model_sl_5_bs_64_hs_5_ep_100_tol_1e-05_gm_[0.00249,5.38e-05]_thd_[0.025,0.25].pth'))
+            'models/pHdata/curriculum_PID/vanilla/model_sl_5_bs_64_hs_5_ep_100_tol_1e-05_gm_[0.00249,5.38e-05]_thd_[0.025,0.25].pth'))
         self.temp_lstm = copy.deepcopy(lstm_model.lstm)
         self.hidden_size = lstm_model.lstm.hidden_size
 

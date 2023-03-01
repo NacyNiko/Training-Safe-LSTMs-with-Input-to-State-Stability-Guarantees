@@ -75,7 +75,7 @@ class IssLstmTrainer:
         train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=False, num_workers=2)
 
         # ----------------- train -------------------
-        lstm_model = LstmRNN(self.input_size, self.hidden_size, output_size=self.output_size, num_layers=self.num_layer)
+        lstm_model = LstmRNN(self.input_size + self.output_size, self.hidden_size, output_size=self.output_size, num_layers=self.num_layer)
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
 
@@ -167,18 +167,18 @@ class IssLstmTrainer:
 
         """ save model """
         self.save_model(self.reg_methode, self.curriculum_learning, lstm_model, [gamma1, gamma2], thd=self.threshold)
-        weight_save.to_csv('./statistic/weights_{}_{}.csv'.format(self.reg_methode,
+        weight_save.to_csv('./statistic/{}/weights_{}_{}.csv'.format(self.dataset, self.reg_methode,
                                                                              self.curriculum_learning), index=False)
 
     def save_model(self, methode, curriculum_learning, model, gamma, thd):
         """ model save path """
-        model_save_path = 'models/curriculum_{}/{}/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_gm_[{:.3g}' \
-                          ',{:.3g}]_thd_[{:.3g},{:.3g}].pth'.format(curriculum_learning, methode
+        model_save_path = 'models/{}/curriculum_{}/{}/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_gm_[{:.3g}' \
+                          ',{:.3g}]_thd_[{:.3g},{:.3g}].pth'.format(self.dataset, curriculum_learning, methode
                             , self.seq_len, self.batch_size, self.hidden_size, self.max_epochs
                             ,self.tol, gamma[0], gamma[1], thd[0], thd[1])
 
-        if not os.path.exists('models/curriculum_{}/{}'.format(curriculum_learning, methode)):
-            os.makedirs('models/curriculum_{}/{}'.format(curriculum_learning, methode))
+        if not os.path.exists('models/{}/curriculum_{}/{}'.format(self.dataset, curriculum_learning, methode)):
+            os.makedirs('models/{}/curriculum_{}/{}'.format(self.dataset, curriculum_learning, methode))
         torch.save(model.state_dict(), model_save_path)
 # TODO: L^* = argmax_{x1, x2} / L(x_1, x_2)
 # TODO: https://arxiv.org/abs/1412.6572
