@@ -5,9 +5,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-train = pd.read_csv('../data/robot/train/train_input.csv', index_col=0)
-val = pd.read_csv('../data/robot/val/val_input.csv', index_col=0)
-labels_train = pd.read_csv('../data/robot/train/train_output_o.csv', index_col=0)
+train = pd.read_csv('../data/robot_forward/train/train_input.csv', index_col=0)
+val = pd.read_csv('../data/robot_forward/val/val_input.csv', index_col=0)
+labels_train = pd.read_csv('../data/robot_forward/train/train_output_o.csv', index_col=0)
 
 # fig, ax = plt.subplots(6, 1, figsize=(10, 10))
 # for df in [val]:
@@ -16,7 +16,7 @@ labels_train = pd.read_csv('../data/robot/train/train_output_o.csv', index_col=0
 #
 #     plt.show()
 
-# train.iloc[:30000, :].to_csv('../data/robot/train/train_input_split.csv')
-# train.iloc[30000:, :].to_csv('../data/robot/val/val_output_split.csv')
-labels_train.iloc[:30000, :].to_csv('../data/robot/train/train_output.csv')
-labels_train.iloc[30000:, :].to_csv('../data/robot/val/val_output.csv')
+# train.iloc[:30000, :].to_csv('../data/robot_forward/train/train_input_split.csv')
+# train.iloc[30000:, :].to_csv('../data/robot_forward/val/val_output_split.csv')
+labels_train.iloc[:30000, :].to_csv('../data/robot_forward/train/train_output.csv')
+labels_train.iloc[30000:, :].to_csv('../data/robot_forward/val/val_output.csv')
