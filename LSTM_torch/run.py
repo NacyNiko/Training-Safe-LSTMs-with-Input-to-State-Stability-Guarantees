@@ -29,6 +29,7 @@ parser.add_argument('--epochs', default=60, help='maximum train epochs')
 parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss')
 parser.add_argument('--tol_stop', default=1e-10, help='minimum tolerance between 2 epochs')
 parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM')
+parser.add_argument('--device', default='0', choices=['cpu', '0', '1', '2', '3'])
 
 parser.add_argument(
     '--curriculum_learning', default='PID', choices=[None, '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
