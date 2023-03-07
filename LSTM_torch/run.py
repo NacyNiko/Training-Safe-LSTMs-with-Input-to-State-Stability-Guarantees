@@ -40,7 +40,7 @@ parser.add_argument('--threshold', default=torch.tensor([0.01, 0.05]), help='val
 
 
 if __name__ == '__main__':
-    # lstm_train.main(parser.parse_args())
+    lstm_train.main(parser.parse_args())
     validation.main(parser.parse_args())
 
 
