@@ -72,7 +72,7 @@ class DataCreater:
         """ read original data """
         train_x = torch.tensor(np.array(pd.read_csv(self.path_x, index_col=0))).to(torch.float32)
 
-        train_x = train_x - train_x.iloc[:, 0]
+        train_x = train_x - train_x[:, 0]
 
         train_x = (train_x - torch.mean(train_x)) / torch.std(train_x)   # normilization
         train_y = torch.tensor(np.array(pd.read_csv(self.path_y, index_col=0)))
