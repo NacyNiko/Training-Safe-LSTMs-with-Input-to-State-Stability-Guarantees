@@ -24,20 +24,20 @@ parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM')
 #     raise 'Nonexistent dataset!'
 parser.add_argument('--input_size', default=1, help='input size of LSTM', type=int)
 parser.add_argument('--output_size', default=1, help='output size of output layer', type=int)
-parser.add_argument('--layers', default=1, help='number of layers of LSTM')
-parser.add_argument('--batch_size', default=64, help='train batch size')
-parser.add_argument('--epochs', default=80, help='maximum train epochs')
-parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss')
-parser.add_argument('--tol_stop', default=1e-10, help='minimum tolerance between 2 epochs')
-parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM')
+parser.add_argument('--layers', default=1, help='number of layers of LSTM', type=int)
+parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
+parser.add_argument('--epochs', default=80, help='maximum train epochs', type=int)
+parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss', type=float)
+parser.add_argument('--tol_stop', default=1e-10, help='minimum tolerance between 2 epochs', type=float)
+parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM', type=int)
 
 
 parser.add_argument(
     '--curriculum_learning', default='PID', choices=[None, '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
-parser.add_argument('--PID_coefficient', default=([10, 10], [0.5, 0.5], [0.1, 0.1]))
+parser.add_argument('--PID_coefficient', default=([10, 10], [0.5, 0.5], [0.1, 0.1]), type=tuple)
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
-parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of gamma')
-parser.add_argument('--threshold', default=torch.tensor([0.01, 0.05]), help='value of threshold')
+parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of gamma', type=torch.Tensor)
+parser.add_argument('--threshold', default=torch.tensor([0.01, 0.05]), help='value of threshold', type=torch.Tensor)
 
 
 if __name__ == '__main__':
