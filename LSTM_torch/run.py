@@ -14,16 +14,16 @@ parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
 parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
 parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM')
-if parser.parse_args().dataset == 'pHdata':
-    input_size = output_size = 1
-elif parser.parse_args().dataset == 'robot_inverse':
-    input_size, output_size = 18, 6
-elif parser.parse_args().dataset == 'robot_forward':
-    input_size = output_size = 6
-else:
-    raise 'Nonexistent dataset!'
-parser.add_argument('--input_size', default=input_size, help='input size of LSTM')
-parser.add_argument('--output_size', default=output_size, help='output size of output layer')
+# if parser.parse_args().dataset == 'pHdata':
+#     input_size = output_size = 1
+# elif parser.parse_args().dataset == 'robot_inverse':
+#     input_size, output_size = 18, 6
+# elif parser.parse_args().dataset == 'robot_forward':
+#     input_size = output_size = 6
+# else:
+#     raise 'Nonexistent dataset!'
+parser.add_argument('--input_size', default=1, help='input size of LSTM')
+parser.add_argument('--output_size', default=1, help='output size of output layer')
 parser.add_argument('--layers', default=1, help='number of layers of LSTM')
 parser.add_argument('--batch_size', default=64, help='train batch size')
 parser.add_argument('--epochs', default=80, help='maximum train epochs')
