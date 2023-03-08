@@ -29,7 +29,7 @@ parser.add_argument('--epochs', default=80, help='maximum train epochs')
 parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss')
 parser.add_argument('--tol_stop', default=1e-10, help='minimum tolerance between 2 epochs')
 parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM')
-parser.add_argument('--device', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
+parser.add_argument('--device', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'], required=True)
 
 parser.add_argument(
     '--curriculum_learning', default='PID', choices=[None, '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
@@ -54,4 +54,4 @@ if __name__ == '__main__':
 #                     difficulty: may need to set an auxiliary loss function for K, i.e. Overshoot, response time ...
 
 
-# python3 run.py [--dataset robot_forward] [--hidden_size] [--inputsize] [--output_size] [--layers] [--batch_size] [--epochs] [--tolerance] [--tol_stop] [--len_sequence] [--device 'cuda:1'] [--curriculum_learning] [--PID_coefficient] [--reg_methode] [--gamma] [--threshold]
+# python3 run.py --dataset robot_forward --hidden_size --inputsize --output_size --layers --batch_size --epochs --tolerance --tol_stop --len_sequence --device 'cuda:3' --curriculum_learning --PID_coefficient --reg_methode --gamma --threshold
