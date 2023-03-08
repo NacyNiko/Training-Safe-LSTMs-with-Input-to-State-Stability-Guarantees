@@ -22,8 +22,8 @@ parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM')
 #     input_size = output_size = 6
 # else:
 #     raise 'Nonexistent dataset!'
-parser.add_argument('--input_size', default=1, help='input size of LSTM')
-parser.add_argument('--output_size', default=1, help='output size of output layer')
+parser.add_argument('--input_size', default=1, help='input size of LSTM', type=int)
+parser.add_argument('--output_size', default=1, help='output size of output layer', type=int)
 parser.add_argument('--layers', default=1, help='number of layers of LSTM')
 parser.add_argument('--batch_size', default=64, help='train batch size')
 parser.add_argument('--epochs', default=80, help='maximum train epochs')
