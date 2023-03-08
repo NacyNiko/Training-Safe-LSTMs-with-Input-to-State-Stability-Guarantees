@@ -11,7 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
-parser.add_argument('--device', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'], required=True)
+parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
 parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
 parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM')
 if parser.parse_args().dataset == 'pHdata':

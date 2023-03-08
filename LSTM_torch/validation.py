@@ -150,6 +150,8 @@ def main(args, if_filter=True, plt3D=False):   # if_filter: ignore whether gamma
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model()
     file = 'models/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning, args.reg_methode)
+    if not os.path.exists(file):
+        os.mkdir(file)
     models = os.listdir(file)
     # models = ['model_sl_5_bs_64_hs_5_ep_500_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1]).pth']
     for model in models:
