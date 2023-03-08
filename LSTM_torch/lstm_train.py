@@ -39,6 +39,7 @@ class LstmRNN(nn.Module):
 
 class IssLstmTrainer:
     def __init__(self, args):
+        self.device = args.device
         self.seq_len = args.len_sequence
         self.input_size = args.input_size
         self.output_size = args.output_size
@@ -61,7 +62,7 @@ class IssLstmTrainer:
         self.K_pid = args.PID_coefficient
 
     def train_begin(self):
-        device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        device = self.device if torch.cuda.is_available() else 'cpu'
         if device == 'cuda:0':
             print('Training on GPU.')
         else:
