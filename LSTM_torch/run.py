@@ -11,6 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
+parser.add_argument('--device', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'], required=True)
 parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
 parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM')
 if parser.parse_args().dataset == 'pHdata':
@@ -29,7 +30,7 @@ parser.add_argument('--epochs', default=80, help='maximum train epochs')
 parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss')
 parser.add_argument('--tol_stop', default=1e-10, help='minimum tolerance between 2 epochs')
 parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM')
-parser.add_argument('--device', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'], required=True)
+
 
 parser.add_argument(
     '--curriculum_learning', default='PID', choices=[None, '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
