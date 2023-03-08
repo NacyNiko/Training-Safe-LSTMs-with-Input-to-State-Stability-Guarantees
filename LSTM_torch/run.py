@@ -11,7 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
-parser.add_argument('--dataset', default='robot_forward', choices=['robot_forward', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
+parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
 parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM')
 if parser.parse_args().dataset == 'pHdata':
     input_size = output_size = 1
@@ -54,5 +54,4 @@ if __name__ == '__main__':
 #                     difficulty: may need to set an auxiliary loss function for K, i.e. Overshoot, response time ...
 
 
-# python3 run.py [--dataset robot_forward] [--hidden_size] [--inputsize] [--output_size] [--layers] [--batch_size] [--epochs] [--tolerance] [--tol_stop] [--len_sequence] [--device 'cuda:1'] [--curriculum_learning]
-# [--PID_coefficient] [--reg_methode] [--gamma] [--threshold]
+# python3 run.py [--dataset robot_forward] [--hidden_size] [--inputsize] [--output_size] [--layers] [--batch_size] [--epochs] [--tolerance] [--tol_stop] [--len_sequence] [--device 'cuda:1'] [--curriculum_learning] [--PID_coefficient] [--reg_methode] [--gamma] [--threshold]
