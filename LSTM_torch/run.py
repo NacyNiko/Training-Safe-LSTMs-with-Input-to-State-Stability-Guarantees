@@ -53,6 +53,13 @@ if __name__ == '__main__':
 #           2.2 a dynamic K, which will change during training process
 #               2.2.1 treat K as a parameter instead of a hyperparameter,
 #                     difficulty: may need to set an auxiliary loss function for K, i.e. Overshoot, response time ...
-
+#           2.3 Iterative method:
+#               1. Initialize K_0 for PID controller, set max iterative num p_max
+#               2. for epoch i < max epoch, for p <= p_max and plant_i, do
+#                   2.1 train K_i^* with NN-PID
+#                   2.2 update K_i^p = alpha * K_i^p + (1-alpha) * K_i^*
+#                   2.3 p = p+1
+#               3. train weights of plant_(i+1) with K_i^(p_max)
+#               4. epoch = epoch + 1, set K_(i+1) = K_i^p_max, back to 2.
 
 # python3 run.py --dataset robot_forward --hidden_size --inputsize --output_size --layers --batch_size --epochs --tolerance --tol_stop --len_sequence --device 'cuda:3' --curriculum_learning --PID_coefficient --reg_methode --gamma --threshold
