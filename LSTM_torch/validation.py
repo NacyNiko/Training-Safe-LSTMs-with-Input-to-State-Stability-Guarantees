@@ -57,7 +57,8 @@ class Validator:
     @staticmethod
     def nrmse(y, y_hat):  # normalization to y
         # y = y.squeeze(1)
-        return np.sqrt(1 / y.shape[0]) * torch.norm(y - y_hat)
+        std = torch.std(y_hat, dim=0)
+        return 1 / std * np.sqrt(1 / y.shape[0]) * torch.norm(y - y_hat)
 
     def create_model(self):
         model = LstmRNN(self.input_size + self.output_size, self.hidden_size, self.output_size, self.num_layers)

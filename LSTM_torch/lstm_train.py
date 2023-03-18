@@ -70,13 +70,17 @@ class IssLstmTrainer:
 
         #  data set
         data = [r'../data/{}/train/train_input.csv'.format(self.dataset)
-                , r'../data/{}/train/train_output.csv'.format(self.dataset)]
-        train_x, train_y = DataCreater(data[0], data[1], self.input_size, self.output_size).creat_new_dataset(seq_len=self.seq_len)
+                , r'../data/{}/train/train_output.csv'.format(self.dataset)
+                , r'../data/{}/val/val_input.csv'.format(self.dataset)
+                , r'../data/{}/val/val_output.csv'.format(self.dataset)]
+        train_x, train_y = DataCreater(data[0], data[1], data[2], data[3], self.input_size
+                                       , self.output_size).creat_new_dataset(seq_len=self.seq_len)
         train_set = GetLoader(train_x, train_y)
         train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=False, num_workers=2)
 
         # ----------------- train -------------------
-        lstm_model = LstmRNN(self.input_size + self.output_size, self.hidden_size, output_size=self.output_size, num_layers=self.num_layer)
+        lstm_model = LstmRNN(self.input_size + self.output_size, self.hidden_size, output_size=self.output_size
+                             , num_layers=self.num_layer)
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
 

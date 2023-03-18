@@ -7,8 +7,7 @@ import argparse
 import torch
 import lstm_train
 import validation
-import pandas as pd
-import matplotlib.pyplot as plt
+
 
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
@@ -62,4 +61,4 @@ if __name__ == '__main__':
 #               3. train weights of plant_(i+1) with K_i^(p_max)
 #               4. epoch = epoch + 1, set K_(i+1) = K_i^p_max, back to 2.
 
-# python3 run.py --dataset robot_forward --hidden_size --inputsize --output_size --layers --batch_size --epochs --tolerance --tol_stop --len_sequence --device 'cuda:3' --curriculum_learning --PID_coefficient --reg_methode --gamma --threshold
+# python run.py --dataset robot_forward --hidden_size --inputsize --output_size --layers --batch_size --epochs --tolerance --tol_stop --len_sequence --device 'cuda:3' --curriculum_learning --PID_coefficient --reg_methode --gamma --threshold

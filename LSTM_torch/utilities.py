@@ -62,18 +62,26 @@ def cal_constraints(hidden_size, paras, df=None):
 
 class DataCreater:
     # data path
-    def __init__(self, train_x_path, train_y_path, input_size, output_size):
-        self.path_x = train_x_path
-        self.path_y = train_y_path
+    def __init__(self, train_x_path, train_y_path, test_x_path, test_y_path, input_size, output_size, train=True):
+        self.train_x_path = train_x_path
+        self.train_y_path = train_y_path
+        self.test_x_path = test_x_path
+        self.test_y_path = test_y_path
         self.input_size = input_size
         self.output_size = output_size
+        self.train = train
+
+        self.mean = torch.mean(torch.tensor(np.array(pd.read_csv(self.train_x_path, index_col=0))).to(torch.float32), dim=0)
+        self.std = torch.std(torch.tensor(np.array(pd.read_csv(self.train_x_path, index_col=0))).to(torch.float32), dim=0)
 
     def creat_new_dataset(self, seq_len=20):
         """ read original data """
-        train_x = torch.tensor(np.array(pd.read_csv(self.path_x, index_col=0))).to(torch.float32)
 
-        train_x = (train_x - torch.mean(train_x)) / torch.std(train_x)   # normilization
-        train_y = torch.tensor(np.array(pd.read_csv(self.path_y, index_col=0)))
+        train_x = torch.tensor(np.array(pd.read_csv(self.train_x_path if self.train else self.test_x_path, index_col=0))).to(torch.float32)
+
+        train_x = (train_x - self.mean) / self.std   # normilization
+        # TODO：only use mean/ std of training set, torch.mean
+        train_y = torch.tensor(np.array(pd.read_csv(self.train_y_path if self.train else self.test_y_path , index_col=0)))
 
         """ create new data set """
         x_list = torch.empty([1, self.input_size + self.output_size, seq_len+1])   # instance, features, seq
