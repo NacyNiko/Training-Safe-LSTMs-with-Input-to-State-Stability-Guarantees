@@ -48,24 +48,25 @@ class Validator:
         self.l_c = []
 
     def load_data(self):
-        data_t, n_t = [r'../data/{}/train/train_input.csv'.format(self.dataset),
-                       r'../data/{}/train/train_output.csv'.format(self.dataset)], 'train'
-        data_v, n_v = [r'../data/{}/val/val_input.csv'.format(self.dataset),
-                       r'../data/{}/val/val_output.csv'.format(self.dataset)], 'val'
-        return [data_t, n_t], [data_v, n_v]
+        data_t = [r'../data/{}/train/train_input.csv'.format(self.dataset)
+                       , r'../data/{}/train/train_output.csv'.format(self.dataset)]
+        data_v = [r'../data/{}/val/val_input.csv'.format(self.dataset)
+                       , r'../data/{}/val/val_output.csv'.format(self.dataset)]
+        return data_t, data_v
 
     @staticmethod
     def nrmse(y, y_hat):  # normalization to y
         # y = y.squeeze(1)
         std = torch.std(y_hat, dim=0)
-        return 1 / std * np.sqrt(1 / y.shape[0]) * torch.norm(y - y_hat)
+        res = 1 / std * np.sqrt(1 / y.shape[0]) * torch.norm(y - y_hat)
+        return res
 
     def create_model(self):
         model = LstmRNN(self.input_size + self.output_size, self.hidden_size, self.output_size, self.num_layers)
         return model
 
     def load_model(self, model, path):
-        model.load_state_dict(torch.load(path))
+        model.load_state_dict(torch.load(path, map_location=self.device))
         model.eval()
         model.to(self.device)
         return model
@@ -78,10 +79,11 @@ class Validator:
 
         if save_plot:
             if self.output_size > 1:
-                for data, n in [data_t, data_v]:
-                    f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n == 'train' else (10, 10))
+                for n in [True, False]:
+                    f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
 
-                    data_x, data_y = DataCreater(data[0], data[1], self.input_size, self.output_size).creat_new_dataset(
+                    data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1]
+                                                 , self.input_size, self.output_size, train=n).creat_new_dataset(
                         seq_len=self.seq_len)
                     data_set = GetLoader(data_x, data_y)
 
@@ -98,7 +100,7 @@ class Validator:
 
                     i = 0
                     while i < self.output_size:
-                        fit_score = self.nrmse(data_y[:, i], torch.tensor(predictions[1:, i]))
+                        fit_score = self.nrmse(data_y[:, i], predictions[1:, i].clone().detach())
                         f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
                         ax[i].plot(predictions[1:, i], color='m', label='pred', alpha=0.8)
                         ax[i].plot(data_y[:, i], color='c', label='real', linestyle='--', alpha=0.5)
@@ -106,13 +108,13 @@ class Validator:
                         ax[i].legend(loc='best')
                         ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
                         i += 1
-                    plt.savefig('./results{}.jpg'.format(path[6:-4] + n), bbox_inches='tight', dpi=500)
+                    plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
             else:
                 f, ax = plt.subplots(2, 1)
                 i = 0
-                for data, n in [data_t, data_v]:
-                    data_x, data_y = DataCreater(data[0], data[1], self.input_size,
-                                                 self.output_size).creat_new_dataset(
+                for n in [True, False]:
+                    data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
+                                                 self.input_size, self.output_size, train=n).creat_new_dataset(
                         seq_len=self.seq_len)
                     data_set = GetLoader(data_x, data_y)
 
@@ -127,16 +129,16 @@ class Validator:
                             predict = model(batch_case).to(torch.float32).to(self.device)
                             predictions = torch.concat([predictions, predict.cpu()], dim=0)
 
-                    fit_score = self.nrmse(data_y[:, :], torch.tensor(predictions[1:, :]))
+                    fit_score = self.nrmse(data_y, predictions[1:, :].clone().detach())
                     f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
                     ax[i].plot(predictions[1:, :], color='m', label='pred', alpha=0.8)
                     ax[i].plot(data_y[:, :], color='c', label='real', linestyle='--', alpha=0.5)
                     ax[i].tick_params(labelsize=5)
                     ax[i].legend(loc='best')
-                    ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
+                    ax[i].set_title('NRMSE on {} set: {:.3f}'.format('train' if n else 'val', float(fit_score), fontsize=8))
                     i += 1
 
-                plt.savefig('./results{}.jpg'.format(path[6:-4] + n), bbox_inches='tight', dpi=500)
+                plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
 
     def evaluate_constraint(self, model):
         parameters = model.lstm.parameters()
