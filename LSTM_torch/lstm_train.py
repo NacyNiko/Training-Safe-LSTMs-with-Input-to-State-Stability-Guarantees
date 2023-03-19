@@ -6,6 +6,7 @@ import copy
 import os.path
 
 import pandas as pd
+from networks import LstmRNN, PidNN
 import torch
 from torch import nn
 
@@ -21,20 +22,6 @@ from lossfunctions import *
 """
 
 # Define LSTM Neural Networks
-class LstmRNN(nn.Module):
-    def __init__(self, input_size=2, hidden_size=5, output_size=1, num_layers=1, mean=-10., std=4.):
-        super().__init__()
-        self.hidden_size = hidden_size
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers)  #  [seq_len, batch_size, input_size] --> [seq_len, batch_size, hidden_size]
-        self.linear1 = nn.Linear(hidden_size, output_size)  #  [seq_len, batch_size, hidden_size] --> [seq_len, batch_size, output_size]
-
-    def forward(self, _x):
-        x, _ = self.lstm(_x)  # _x is input, size (seq_len, batch, input_size)
-        s, b, h = x.shape  # x is output, size (seq_len, batch, hidden_size)
-        x = x.view(s * b, h)
-        x = self.linear1(x)
-        x = x.view(s, b, -1)
-        return x[-1, :, :]
 
 
 class IssLstmTrainer:
@@ -59,6 +46,7 @@ class IssLstmTrainer:
 
         self.lossfcn = None
         self.regularizer = None
+        self.dynamic_k = True
         self.K_pid = args.PID_coefficient
 
     def train_begin(self):
@@ -76,15 +64,19 @@ class IssLstmTrainer:
         train_x, train_y = DataCreater(data[0], data[1], data[2], data[3], self.input_size
                                        , self.output_size).creat_new_dataset(seq_len=self.seq_len)
         train_set = GetLoader(train_x, train_y)
-        train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=False, num_workers=2)
+        train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=2)
 
         # ----------------- train -------------------
         lstm_model = LstmRNN(self.input_size + self.output_size, self.hidden_size, output_size=self.output_size
                              , num_layers=self.num_layer)
+
+        Pid_NN = PidNN((self.input_size + self.output_size) * self.batch_size * (self.seq_len+1))
+
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
 
         lstm_model.to(device)
+        Pid_NN.to(device)
         criterion.to(device)
         print('LSTM model:', lstm_model)
         print('model.parameters:', lstm_model.parameters)
@@ -125,6 +117,7 @@ class IssLstmTrainer:
             else:
                 raise 'undefined curriculum strategy'
 
+        k_list = pd.DataFrame()
         for epoch in range(self.max_epochs):
             for batch_cases, labels in train_set:
                 batch_cases = batch_cases.transpose(0, 1)
@@ -138,10 +131,19 @@ class IssLstmTrainer:
                 labels = labels.to(torch.float32).to(device)
                 loss_ = criterion(output, labels)
 
+                if self.curriculum_learning == 'PID' and self.dynamic_k:
+                    dynamic_k = Pid_NN(batch_cases.reshape(-1)).to(torch.float32).to(device)
+                    k_list = pd.concat([k_list, pd.DataFrame(dynamic_k.cpu().detach().numpy().reshape(1, -1))], axis=0)
+                    self.regularizer = PIDRegularizer(dynamic_k)
+
                 gamma1, gamma2 = self.regularizer.forward(loss_, reg_loss)
 
                 loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1]
-                weight_save.iloc[-1, -3:-1] = [gamma1 * reg_loss[0].item(), gamma2 * reg_loss[1].item()]
+                if self.dynamic_k:
+                    weight_save.iloc[-1, -3:-1] = [gamma1.item() * reg_loss[0].item(), gamma2.item() * reg_loss[1].item()]
+                else:
+                    weight_save.iloc[-1, -3:-1] = [gamma1 * reg_loss[0].item(),
+                                                   gamma2 * reg_loss[1].item()]
                 weight_save.iloc[-1, -1] = loss_.item()
 
                 """ backpropagation """
@@ -174,6 +176,9 @@ class IssLstmTrainer:
         self.save_model(self.reg_methode, self.curriculum_learning, lstm_model, [gamma1, gamma2], thd=self.threshold)
         weight_save.to_csv('./statistic/{}/weights_{}_{}.csv'.format(self.dataset, self.reg_methode,
                                                                              self.curriculum_learning), index=False)
+        k_list.to_csv('./statistic/{}/K_{}_{}.csv'.format(self.dataset, self.reg_methode,
+                                                                             self.curriculum_learning), index=False)
+
 
     def save_model(self, methode, curriculum_learning, model, gamma, thd):
         """ model save path """
