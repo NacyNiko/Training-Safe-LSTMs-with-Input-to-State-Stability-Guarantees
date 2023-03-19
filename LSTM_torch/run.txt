@@ -1,3 +1,0 @@
-python3 run.py --device cuda:0 --dataset robot_forward --input_size 6 --output_size 6
-python3 run.py --device cuda:0 --dataset pHdata --input_size 1 --output_size 1
-python3 run.py --device cuda:0 --dataset robot_inverse --input_size 18 --output_size 6
