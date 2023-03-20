@@ -46,7 +46,7 @@ class IssLstmTrainer:
 
         self.lossfcn = None
         self.regularizer = None
-        self.dynamic_k = True
+        self.dynamic_k = False
         self.K_pid = args.PID_coefficient
 
     def train_begin(self):
