@@ -2,7 +2,7 @@
 # @Time : 2022/12/21 16:36 
 # @Author : Yinan 
 # @File : utilities.py
-
+import matplotlib.pyplot as plt
 import torch
 import pandas as pd
 import numpy as np
@@ -114,5 +114,27 @@ class GetLoader(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.data)
+
+
+class PlotGraph:
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.path = './statistic/{}/weights_vanilla_PID.csv'.format(dataset)
+        self.data = pd.read_csv(self.path)
+        self.columns = 'norm i,sigmoid norm i,norm o,sigmoid norm o,norm f,sigmoid norm f,norm cell state,c1,c2,reg_loss1,reg_loss2,loss_'.split(',')
+
+    def line_plot(self):
+        fig, ax = plt.subplots(7, 1)
+
+        for i in range(6):
+            ax[0].plot(self.data.iloc[:, i], label=self.columns[i], c=(np.random.random(), np.random.random(), np.random.random()))
+            ax[0].legend()
+
+        for i in range(1, 7):
+            ax[i].plot(self.data.iloc[:, i+5], label=self.columns[i+5], c=(np.random.random(), np.random.random(), np.random.random()))
+            ax[i].legend()
+
+        plt.show()
+        plt.savefig('./statistic/{}/{}.fig'.format(self.data, self.data))
 
 

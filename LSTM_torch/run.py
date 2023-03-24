@@ -33,7 +33,7 @@ parser.add_argument('--len_sequence', default=5, help='length of input sequence 
 
 parser.add_argument(
     '--curriculum_learning', default='PID', choices=[None, '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
-parser.add_argument('--PID_coefficient', default=([2, 15], [0.1, 2], [0.0, 0.0]), type=tuple)
+parser.add_argument('--PID_coefficient', default=([3, 15], [0.2, 2], [0.0, 0.0]), type=tuple)
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of gamma', type=torch.Tensor)
 parser.add_argument('--threshold', default=torch.tensor([-0.01, -0.05]), help='value of threshold', type=torch.Tensor)
@@ -52,9 +52,7 @@ if __name__ == '__main__':
 #           2.2 a dynamic K, which will change during training process
 #               2.2.1 treat K as a parameter instead of a hyperparameter,
 #                     difficulty: may need to set an auxiliary loss function for K, i.e. Overshoot, response time ...
-#           2.3 Iterative method: Doesn't work, for constant plant, K will converge to zero. btw, this PIDNN is
-#           different from those to generate a control input into plant, what in our case is gamma rather than a input
-#           to plant.
+#           2.3 Iterative method:
 #               1. Initialize K_0 for PID controller, set max iterative num p_max
 #               2. for epoch i < max epoch, for p <= p_max and plant_i, do
 #                   2.1 train K_i^* with NN-PID
@@ -62,5 +60,8 @@ if __name__ == '__main__':
 #                   2.3 p = p+1
 #               3. train weights of plant_(i+1) with K_i^(p_max)
 #               4. epoch = epoch + 1, set K_(i+1) = K_i^p_max, back to 2.
+#           remark: Doesn't work, for constant plant, K will converge to zero. btw, this PIDNN is
+#           different from those to generate a control input into plant, what in our case is gamma (only influence
+#           total loss) rather than a input to plant. Therefore, proper configuration for a constant K is needed.
 
 # python run.py --dataset robot_forward --hidden_size --inputsize --output_size --layers --batch_size --epochs --tolerance --tol_stop --len_sequence --device 'cuda:3' --curriculum_learning --PID_coefficient --reg_methode --gamma --threshold
