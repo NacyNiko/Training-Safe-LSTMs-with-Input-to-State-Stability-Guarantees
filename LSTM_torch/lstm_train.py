@@ -46,7 +46,7 @@ class IssLstmTrainer:
 
         self.lossfcn = None
         self.regularizer = None
-        self.dynamic_k = False
+        self.dynamic_k = True
         self.K_pid = args.PID_coefficient
 
     def train_begin(self):
@@ -136,9 +136,23 @@ class IssLstmTrainer:
                     k_list = pd.concat([k_list, pd.DataFrame(dynamic_k.cpu().detach().numpy().reshape(1, -1))], axis=0)
                     self.regularizer = PIDRegularizer(dynamic_k)
 
+                relu_loss_fcn = LossRelu()
+                _, relu_loss = relu_loss_fcn(constraints, self.threshold)
+
                 gamma1, gamma2 = self.regularizer.forward(loss_, reg_loss)
 
-                loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1]
+                if self.curriculum_learning == 'PID' and self.dynamic_k:
+                    tmp = [0, 0]
+                    for i in range(3):
+                        for j in range(2):
+                            if not torch.isinf(1 / dynamic_k[i][j]):
+                                tmp[j] += 1 / dynamic_k[i][j]
+
+                    loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1] + relu_loss[0] \
+                           * tmp[0] + relu_loss[1] * tmp[1]
+                else:
+                    loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1]
+
                 if self.dynamic_k:
                     weight_save.iloc[-1, -3:-1] = [gamma1.item() * reg_loss[0].item(), gamma2.item() * reg_loss[1].item()]
                 else:
