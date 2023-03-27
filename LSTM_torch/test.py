@@ -5,5 +5,5 @@
 
 from utilities import PlotGraph
 
-pg = PlotGraph('robot_forward')
+pg = PlotGraph('pHdata')
 pg.line_plot()

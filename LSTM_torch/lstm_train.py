@@ -46,7 +46,7 @@ class IssLstmTrainer:
 
         self.lossfcn = None
         self.regularizer = None
-        self.dynamic_k = False
+        self.dynamic_k = args.dynamic_K
         self.K_pid = args.PID_coefficient
 
     def train_begin(self):
@@ -190,7 +190,8 @@ class IssLstmTrainer:
         self.save_model(self.reg_methode, self.curriculum_learning, lstm_model, [gamma1, gamma2], thd=self.threshold)
         weight_save.to_csv('./statistic/{}/weights_{}_{}.csv'.format(self.dataset, self.reg_methode,
                                                                              self.curriculum_learning), index=False)
-        k_list.to_csv('./statistic/{}/K_{}_{}.csv'.format(self.dataset, self.reg_methode,
+        if self.dynamic_k:
+            k_list.to_csv('./statistic/{}/K_{}_{}.csv'.format(self.dataset, self.reg_methode,
                                                                              self.curriculum_learning), index=False)
 
 

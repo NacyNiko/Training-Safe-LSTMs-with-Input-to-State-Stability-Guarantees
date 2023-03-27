@@ -25,6 +25,7 @@ class Validator:
         self.device = device
         self.cur = args.curriculum_learning
         self.reg_mth = args.reg_methode
+        self.dynamic_K = args.dynamic_K
 
         # self.l_r = np.array(sum(list([i] * len(args.gamma) for i in range(0, len(args.gamma))), []))
         # self.l_thd = np.array(list(range(0, len(args.threshold))) * len(args.threshold))
@@ -89,7 +90,7 @@ class Validator:
                         ax[i].plot(data_y[:, i], color='c', label='real', linestyle='--', alpha=0.5)
                         ax[i].tick_params(labelsize=5)
                         ax[i].legend(loc='best')
-                        ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
+                        ax[i].set_title('NRMSE on {} set: {:.3f} {}'.format(n, fit_score, self.dynamic_K), fontsize=8)
                         i += 1
                     plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
             else:
@@ -118,7 +119,8 @@ class Validator:
                     ax[i].plot(data_y[:, :], color='c', label='real', linestyle='--', alpha=0.5)
                     ax[i].tick_params(labelsize=5)
                     ax[i].legend(loc='best')
-                    ax[i].set_title('NRMSE on {} set: {:.3f}'.format('train' if n else 'val', float(fit_score), fontsize=8))
+                    ax[i].set_title('NRMSE on {} set: {:.3f} {}'.format('train' if n else 'val', float(fit_score)
+                                                                        , self.dynamic_K, fontsize=8))
                     i += 1
 
                 plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
