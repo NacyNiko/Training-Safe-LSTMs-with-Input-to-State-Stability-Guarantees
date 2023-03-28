@@ -85,12 +85,12 @@ class Validator:
                     i = 0
                     while i < self.output_size:
                         fit_score = self.nrmse(data_y[:, i], predictions[1:, i].clone().detach())
-                        f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{}'.format(c1, c2))
+                        f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
                         ax[i].plot(predictions[1:, i], color='m', label='pred', alpha=0.8)
                         ax[i].plot(data_y[:, i], color='c', label='real', linestyle='--', alpha=0.5)
                         ax[i].tick_params(labelsize=5)
                         ax[i].legend(loc='best')
-                        ax[i].set_title('NRMSE on {} set: {:.3f} {}'.format(n, fit_score, self.dynamic_K), fontsize=8)
+                        ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
                         i += 1
                     plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
             else:

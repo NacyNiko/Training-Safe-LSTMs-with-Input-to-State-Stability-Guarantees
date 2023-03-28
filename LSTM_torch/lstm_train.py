@@ -48,6 +48,7 @@ class IssLstmTrainer:
         self.regularizer = None
         self.dynamic_k = args.dynamic_K
         self.K_pid = args.PID_coefficient
+        print(self.dynamic_k)
 
     def train_begin(self):
         device = self.device if torch.cuda.is_available() else 'cpu'
