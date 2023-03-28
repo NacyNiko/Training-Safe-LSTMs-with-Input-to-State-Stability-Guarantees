@@ -150,11 +150,11 @@ class IssLstmTrainer:
                             tmp[j] += 1 / dynamic_k[i][j] if i != 2 else dynamic_k[i][j]
                     # print(relu_loss[0], tmp[0], relu_loss[1], tmp[1], relu_loss[0] * tmp[0] + relu_loss[1] * tmp[1])
                     # print(dynamic_k)
-                    print('rl0:{}, tmp0:{}, rl1:{}, tmp1:{}'.format(relu_loss[0], relu_loss[1], tmp[0], tmp[1]))
-                    print(dynamic_k)
-                    loss = relu_loss[0].item() * tmp[0] + relu_loss[1].item() * tmp[1]
-                    # loss = loss_
-                    print(loss)
+                    # print('rl0:{}, tmp0:{}, rl1:{}, tmp1:{}'.format(relu_loss[0], relu_loss[1], tmp[0], tmp[1]))
+                    # print(dynamic_k)
+                    loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1] + \
+                           relu_loss[0].item() * tmp[0] + relu_loss[1].item() * tmp[1]
+                    # print(loss)
                 else:
                     loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1]
 
