@@ -26,16 +26,20 @@ class PidNN(nn.Module):
     def __init__(self, input_size, hidden_size=5, output_size=6):
         super(PidNN, self).__init__()
         self.hidden_size = hidden_size
-        self.sequential = nn.Sequential(
-            nn.Linear(input_size, hidden_size)
-            , nn.Sigmoid()
-            , nn.Linear(hidden_size, output_size)
-            , nn.ReLU()
-        )
+        self.linear1 = nn.Linear(input_size, hidden_size)
+        self.linear2 = nn.Linear(hidden_size, output_size)
+        # self.sequential = nn.Sequential(
+        #     nn.Linear(input_size, hidden_size)
+        #     , nn.Tanh()
+        #     , nn.Linear(hidden_size, output_size)
+        # )
 
     def forward(self, x):
-        out = self.sequential(x)
-        out = out.reshape(3, 2)
+        x = self.linear1(x)
+        x = torch.tanh(x)
+        x = self.linear2(x)
+        x = 1 / 2 * (1 + torch.tanh(x))
+        out = x.reshape(3, 2)
         return out
 
 

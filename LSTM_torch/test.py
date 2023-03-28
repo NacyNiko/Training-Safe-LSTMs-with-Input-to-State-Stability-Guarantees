@@ -6,4 +6,5 @@
 from utilities import PlotGraph
 
 pg = PlotGraph('pHdata')
-pg.line_plot()
+# pg.line_plot()
+pg.plot_K()

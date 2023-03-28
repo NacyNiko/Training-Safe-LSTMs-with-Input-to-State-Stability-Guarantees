@@ -74,7 +74,7 @@ class IssLstmTrainer:
         Pid_NN = PidNN((self.input_size + self.output_size) * self.batch_size * (self.seq_len+1))
 
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(lstm_model.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam([{'params': lstm_model.parameters()}, {'params': Pid_NN.parameters()}], lr=1e-3)
 
         lstm_model.to(device)
         Pid_NN.to(device)
@@ -146,11 +146,15 @@ class IssLstmTrainer:
                     tmp = [0, 0]
                     for i in range(3):
                         for j in range(2):
-                            if not torch.isinf(1 / dynamic_k[i][j]):
-                                tmp[j] += 1 / dynamic_k[i][j]
-
-                    loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1] + relu_loss[0] \
-                           * tmp[0] + relu_loss[1] * tmp[1]
+                            # tmp[j] += torch.exp(-dynamic_k[i][j])
+                            tmp[j] += 1 / dynamic_k[i][j] if i != 2 else dynamic_k[i][j]
+                    # print(relu_loss[0], tmp[0], relu_loss[1], tmp[1], relu_loss[0] * tmp[0] + relu_loss[1] * tmp[1])
+                    # print(dynamic_k)
+                    print('rl0:{}, tmp0:{}, rl1:{}, tmp1:{}'.format(relu_loss[0], relu_loss[1], tmp[0], tmp[1]))
+                    print(dynamic_k)
+                    loss = relu_loss[0].item() * tmp[0] + relu_loss[1].item() * tmp[1]
+                    # loss = loss_
+                    print(loss)
                 else:
                     loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1]
 
@@ -177,7 +181,7 @@ class IssLstmTrainer:
                     print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                     print("The loss changes no more")
                     break
-                elif (epoch + 1) % 10 == 0:
+                elif (epoch + 1) % 50 == 0:
                     print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                 loss_prev = loss.item()
                 # accumulative_reg_loss[0] += reg_loss[0].item()

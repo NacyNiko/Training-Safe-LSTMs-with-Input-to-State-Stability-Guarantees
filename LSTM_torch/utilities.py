@@ -122,6 +122,7 @@ class PlotGraph:
         self.path = './statistic/{}/weights_vanilla_PID.csv'.format(dataset)
         self.data = pd.read_csv(self.path)
         self.columns = 'norm i,sigmoid norm i,norm o,sigmoid norm o,norm f,sigmoid norm f,norm cell state,c1,c2,reg_loss1,reg_loss2,loss_'.split(',')
+        self.K = './statistic/{}/K_vanilla_PID.csv'.format(dataset)
 
     def line_plot(self):
         fig, ax = plt.subplots(7, 1)
@@ -136,5 +137,16 @@ class PlotGraph:
 
         plt.show()
         plt.savefig('./statistic/{}/{}.fig'.format(self.data, self.data))
+
+    def plot_K(self):
+        fig, ax = plt.subplots(6, 1)
+
+        for i in range(6):
+            ax[i].plot(pd.read_csv(self.K).iloc[:, i],
+                       c=(np.random.random(), np.random.random(), np.random.random()))
+            ax[i].legend()
+
+        plt.show()
+        plt.savefig('./statistic/{}/{} K.fig'.format(self.data, self.data))
 
 
