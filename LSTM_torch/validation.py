@@ -139,11 +139,16 @@ def main(args, if_filter=True, plt3D=False):   # if_filter: ignore whether gamma
     if not os.path.exists('results/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning, args.reg_methode)):
         os.makedirs('results/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning, args.reg_methode))
     models = os.listdir(file)
+    save_jpgs = os.listdir('results/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning
+                                                                 , args.reg_methode))
     # models = ['model_sl_5_bs_64_hs_5_ep_500_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1]).pth']
     for model in models:
-        path = file + model
-        lstmmodel = validator.load_model(lstmmodel, path)
-        validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
+        temp1 = model[:-4] + 'val.jpg'
+        temp2 = model[:-4] + 'train.jpg'
+        if not (temp1 in save_jpgs or temp2 in save_jpgs):
+            path = file + model
+            lstmmodel = validator.load_model(lstmmodel, path)
+            validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
 
     # if if_filter:
     #     idx = validator.l_r * validator.l_thd
