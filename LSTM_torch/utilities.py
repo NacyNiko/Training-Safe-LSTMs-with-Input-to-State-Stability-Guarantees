@@ -150,3 +150,24 @@ class PlotGraph:
         plt.savefig('./statistic/{}/{} K.fig'.format(self.data, self.data))
 
 
+########### new ###############
+class SaveLoss:
+    def __init__(self, target: torch.tensor, interval: int):
+        self.loss = torch.tensor([0, 0])
+        self.overshoot = torch.tensor([0, 0])
+        self.response = torch.tensor([0, 0])
+        self.steady_error = torch.tensor([0, 0])
+        self.target = target
+        self.interval = interval
+
+    def add_loss(self, loss: torch.tensor, epoch: int):
+        self.loss = torch.cat([self.loss, loss], dim=0)
+        for i in range(2):
+            if epoch % self.interval == 0:
+                self.overshoot = [max(max(self.loss[-self.interval:][0] - self.target[0]), 0)
+                    , max(max(self.loss[1][-self.interval:] - self.target[0]), 0)]
+                self.response = [torch.argmax(self.loss[-self.interval:][0])
+                    , torch.argmax(self.loss[-self.interval:][1])]
+                self.steady_error = [self.loss[-1][0] - self.target[0]
+                    , self.loss[-1][1] - self.target[1]]
+
