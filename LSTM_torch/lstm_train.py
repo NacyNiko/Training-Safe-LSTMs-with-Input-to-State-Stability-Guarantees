@@ -10,7 +10,7 @@ from networks import LstmRNN, PidNN
 import torch
 from torch import nn
 
-from utilities import DataCreater, GetLoader, cal_constraints
+from utilities import DataCreater, GetLoader, cal_constraints, SaveLoss
 from torch.utils.data import DataLoader
 import numpy as np
 
@@ -48,6 +48,8 @@ class IssLstmTrainer:
         self.regularizer = None
         self.dynamic_k = args.dynamic_K
         self.K_pid = args.PID_coefficient
+        self.window = args.window
+        self.loss_saver = SaveLoss(args.threshold, window=args.window)
         print(self.dynamic_k)
 
     def train_begin(self):
@@ -128,6 +130,8 @@ class IssLstmTrainer:
                 constraints, weight_save = cal_constraints(self.hidden_size, lstm_model.lstm.parameters(), df=weight_save)
                 _, reg_loss = self.lossfcn.forward(constraints, self.threshold)
 
+                overshoot, response, steady_error = self.loss_saver.add_loss(torch.tensor([reg_loss]), epoch)
+
                 output = lstm_model(batch_cases).to(torch.float32).to(device)
                 labels = labels.to(torch.float32).to(device)
                 loss_ = criterion(output, labels)
@@ -142,23 +146,27 @@ class IssLstmTrainer:
 
                 gamma1, gamma2 = self.regularizer.forward(loss_, reg_loss)
 
-                if self.curriculum_learning == 'PID' and self.dynamic_k:
-                    tmp = [0, 0]
-                    for i in range(3):
-                        for j in range(2):
-                            if i == 0:  # Kp
-                                # tmp[j] += torch.exp(-dynamic_k[i][j])
-                                tmp[j] += 20 / dynamic_k[i][j]
-                            elif i == 1:  # ki
-                                tmp[j] += 0.1 / dynamic_k[i][j]
-                            else:        # kd
-                                tmp[j] += dynamic_k[i][j]
+                if self.curriculum_learning == 'PID' and self.dynamic_k and None not in [overshoot, response, steady_error]:
+                    overshoot = overshoot.float().to(device)
+                    response = response.float().to(device)
+                    steady_error = steady_error.float().to(device)
+
+                    # print('overshoot:', overshoot)
+                    # print('response:', response)
+                    # print('steady error', steady_error)
+
+                    reg_k_loss = torch.dot(overshoot, dynamic_k[0, :]) + torch.dot(overshoot, 1 / dynamic_k[1, :]) + \
+                           torch.dot(overshoot, 1 / dynamic_k[2, :]) + \
+                           torch.dot(response, 1 / dynamic_k[0, :]) + torch.dot(steady_error, dynamic_k[1, :]) + \
+                           torch.dot(response, 1 / dynamic_k[2, :])
+
+                    loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1] + reg_k_loss
+
                     # print(relu_loss[0], tmp[0], relu_loss[1], tmp[1], relu_loss[0] * tmp[0] + relu_loss[1] * tmp[1])
                     # print(dynamic_k)
                     # print('rl0:{}, tmp0:{}, rl1:{}, tmp1:{}'.format(relu_loss[0], relu_loss[1], tmp[0], tmp[1]))
                     # print(dynamic_k)
-                    loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1] + \
-                            1 * relu_loss[0].item() * tmp[0] + 0.2 * relu_loss[1].item() * tmp[1]
+
                     # print(loss)
                 else:
                     loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1]
@@ -186,7 +194,7 @@ class IssLstmTrainer:
                     print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                     print("The loss changes no more")
                     break
-                elif (epoch + 1) % 50 == 0:
+                elif (epoch + 1) % 10 == 0:
                     print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                 loss_prev = loss.item()
                 # accumulative_reg_loss[0] += reg_loss[0].item()
