@@ -5,6 +5,6 @@
 
 from utilities import PlotGraph
 
-pg = PlotGraph('pHdata')
+pg = PlotGraph('robot_forward')
 # pg.line_plot()
 pg.plot_K()

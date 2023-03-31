@@ -155,10 +155,11 @@ class IssLstmTrainer:
                     # print('response:', response)
                     # print('steady error', steady_error)
 
-                    reg_k_loss = torch.dot(overshoot, dynamic_k[0, :]) + torch.dot(overshoot, 1 / dynamic_k[1, :]) + \
-                           torch.dot(overshoot, 1 / dynamic_k[2, :]) + \
-                           torch.dot(response, 1 / dynamic_k[0, :]) + torch.dot(steady_error, dynamic_k[1, :]) + \
-                           torch.dot(response, 1 / dynamic_k[2, :])
+                    reg_k_loss = torch.dot(overshoot, dynamic_k[0, :]) + torch.dot(overshoot, 0.5 / dynamic_k[1, :]) + \
+                           torch.dot(overshoot, 0.2 / dynamic_k[2, :]) + \
+                           torch.dot(response, 1 / dynamic_k[0, :]) + torch.dot(response, dynamic_k[1, :]) + \
+                           torch.dot(response, 0.2 / dynamic_k[2, :]) +\
+                           torch.dot(steady_error, 1 / dynamic_k[0, :]) + torch.dot(steady_error, 0.5 / dynamic_k[1, :])
 
                     loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1] + reg_k_loss
 
