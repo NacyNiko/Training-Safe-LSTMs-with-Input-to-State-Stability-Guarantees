@@ -169,8 +169,8 @@ class SaveLoss:
                     , max(max(self.loss[1][-self.window:] - self.target[0]), 0)])
                 self.response = torch.tensor([torch.argmax(self.loss[-self.window:][0])
                     , torch.argmax(self.loss[-self.window:][1])])
-                self.steady_error = torch.tensor([max(self.target[0] - self.loss[-1][0], 0)
-                    , max(self.target[1] - self.loss[-1][1], 0)])
+                self.steady_error = torch.tensor([self.loss[-1][0] - self.target[0]
+                    , self.loss[-1][1] - self.target[1]])
                 return self.overshoot, self.response, self.steady_error
         else:
             return None, None, None
