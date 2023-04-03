@@ -38,7 +38,7 @@ parser.add_argument('--PID_coefficient', default=([3, 1], [0.2, 1], [0.5, 0.5]),
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of gamma', type=torch.Tensor)
 parser.add_argument('--threshold', default=torch.tensor([-0.01, -0.05]), help='value of threshold', type=torch.Tensor)
-parser.add_argument('--window', default=500, type=int)
+parser.add_argument('--window', default=200, type=int)
 
 
 if __name__ == '__main__':
