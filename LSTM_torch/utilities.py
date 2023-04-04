@@ -74,6 +74,8 @@ class DataCreater:
         self.mean = torch.mean(torch.tensor(np.array(pd.read_csv(self.train_x_path, index_col=0))).to(torch.float32), dim=0)
         self.std = torch.std(torch.tensor(np.array(pd.read_csv(self.train_x_path, index_col=0))).to(torch.float32), dim=0)
 
+        self.mean_y = torch.mean(torch.tensor(np.array(pd.read_csv(self.train_y_path, index_col=0))).to(torch.float32), dim=0)
+
     def creat_new_dataset(self, seq_len=20):
         """ read original data """
 
@@ -84,36 +86,50 @@ class DataCreater:
         train_y = torch.tensor(np.array(pd.read_csv(self.train_y_path if self.train else self.test_y_path , index_col=0)))
 
         """ create new data set """
-        x_list = torch.empty([1, self.input_size + self.output_size, seq_len+1])   # instance, features, seq
-        y_list = torch.empty([1, self.output_size])
+        # x_list = torch.empty([1, self.input_size + self.output_size])   # batch_size, input_dim
+        # y_list = torch.empty([1, self.output_size])
+        #
+        # l = len(train_x)-seq_len
 
-        l = len(train_x)-seq_len
+        feature = torch.cat([train_x[:-1, :], train_y[:-1, :]], dim=1)
+        labels = train_y[1:, :]
 
-        for i in range(l):
-            """
-            feature0: previous y[i:i + seq_len] and 0 at time step y[seq_len + i]
-            feature1: input u[seq_len + i] at time step seq_len + i
-            """
-            feature0 = torch.cat([train_y[i:i + seq_len, :].transpose(0, 1).unsqueeze(dim=0), torch.zeros([1,  self.output_size, 1])], dim=2)
-            feature1 = torch.cat([torch.zeros([self.input_size, seq_len]), train_x[i+seq_len, :].unsqueeze(1)], dim=1).unsqueeze(dim=0)
-            feature = torch.cat([feature0, feature1], dim=1)
-            x_list = torch.cat([x_list, feature], dim=0)
-            y_list = torch.cat([y_list, train_y[i+seq_len, :].unsqueeze(0)], dim=0)
-        return x_list[1:, :, :], y_list[1:]
+        return feature, labels, self.mean_y
+
+        # for i in range(l):
+        #     """
+        #     feature0: previous y[i:i + seq_len] and 0 at time step y[seq_len + i]
+        #     feature1: input u[seq_len + i] at time step seq_len + i
+        #     """
+        #     feature0 = torch.cat([train_y[i:i + seq_len - 1, :].unsqueeze(1)
+        #                              , torch.zeros([1, 1,  self.output_size])], dim=0)
+        #     feature1 = train_x[i:i + seq_len, :].unsqueeze(1)
+        #     feature = torch.cat([feature0, feature1], dim=2)
+        #     x_list = torch.cat([x_list, feature], dim=1)
+        #     temp = train_y[i+seq_len:i+2*seq_len, :].unsqueeze(1)
+        #     if i + 2 * seq_len >= len(train_x):
+        #         temp = torch.cat([temp, torch.zeros(-len(train_x) + i + 2*seq_len, 1, self.output_size)])
+        #     y_list = torch.cat([y_list, temp], dim=1)
+        # return x_list[:, 1:, :], y_list[:, 1:, :]
 
 
 class GetLoader(torch.utils.data.Dataset):
-    def __init__(self, data_root, data_label):
+    def __init__(self, data_root, data_label, window_size, train: bool):
         self.data = data_root
         self.label = data_label
+        self.window_size = window_size
+        self.train = train
 
     def __getitem__(self, index):
-        data = self.data[index]
-        labels = self.label[index]
-        return data, labels
+        data = self.data[index:index + self.window_size, :]
+        labels = self.label[index:index + self.window_size, :]
+        if self.train:
+            return data, labels
+        else:
+            return data[:, ]
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data[:, 0]) - self.window_size + 1
 
 
 class PlotGraph:

@@ -19,7 +19,7 @@ class LstmRNN(nn.Module):
         x = x.view(s * b, h)
         x = self.linear1(x)
         x = x.view(s, b, -1)
-        return x[-1, :, :]
+        return x
 
 
 class PidNN(nn.Module):
