@@ -139,7 +139,7 @@ class Validator:
 
                             with torch.no_grad():
                                 output = model(batch)  # 使用先前预测的PH值作为输入
-                                predictions.append(output[0, :, :])
+                                predictions.append(output[-1, :, :])
 
                             if i < len(data_set) - 1:
                                 pre_prediction = output.clone()

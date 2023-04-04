@@ -134,8 +134,8 @@ class IssLstmTrainer:
 
                 overshoot, response, steady_error = self.loss_saver.add_loss(torch.tensor([reg_loss]), epoch)
 
-                output = lstm_model(batch_cases)[:1, :, :].to(torch.float32).to(device)
-                labels = labels.to(torch.float32)[:1, :, :].to(device)
+                output = lstm_model(batch_cases)[-1, :, :].to(torch.float32).to(device)
+                labels = labels.to(torch.float32)[0, :, :].to(device)
                 loss_ = criterion(output, labels)
 
                 if self.curriculum_learning == 'PID' and self.dynamic_k:
