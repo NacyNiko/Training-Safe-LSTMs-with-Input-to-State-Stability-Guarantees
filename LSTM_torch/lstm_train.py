@@ -121,6 +121,7 @@ class IssLstmTrainer:
                 raise 'undefined curriculum strategy'
 
         k_list = pd.DataFrame()
+        # results = torch.empty(1, 1).to(device)
         for epoch in range(self.max_epochs):
             print(epoch)
             for batch_cases, labels in train_set:
@@ -138,6 +139,8 @@ class IssLstmTrainer:
                 labels = labels.to(torch.float32)[0, :, :].to(device)
                 loss_ = criterion(output, labels)
 
+                # if epoch == self.max_epochs-1:
+                #     results = torch.cat([results, output], dim=0)
                 if self.curriculum_learning == 'PID' and self.dynamic_k:
                     dynamic_k = Pid_NN(batch_cases.reshape(-1)).to(torch.float32).to(device)
                     k_list = pd.concat([k_list, pd.DataFrame(dynamic_k.cpu().detach().numpy().reshape(1, -1))], axis=0)
@@ -213,6 +216,8 @@ class IssLstmTrainer:
         if self.dynamic_k:
             k_list.to_csv('./statistic/{}/K_{}_{}.csv'.format(self.dataset, self.reg_methode,
                                                                              self.curriculum_learning), index=False)
+        # pd.DataFrame(results.cpu().detach()).to_csv('./statistic/{}/Test_{}_{}.csv'.format(self.dataset, self.reg_methode,
+        #                                                                      self.curriculum_learning), index=False)
 
 
     def save_model(self, methode, curriculum_learning, model, gamma, thd):
