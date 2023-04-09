@@ -67,37 +67,36 @@ class Validator:
                 for n in [True, False]:
                     f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
 
-                    data_x, data_y, mean = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1]
+                    data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1]
                                                  , self.input_size, self.output_size, train=n).creat_new_dataset(
                         seq_len=self.seq_len)
                     data_set = GetLoader(data_x, data_y, window_size=self.seq_len, train=False)
 
                     data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
-                    predictions = []
-
+                    # predictions = []
                     with torch.no_grad():
-                        for i, batch in enumerate(data_set):
-                            last_data = batch.squeeze(0)
-                            init_ph_value = torch.zeros(last_data.shape[0], last_data.shape[1], 1)  # 初始化缺失的PH值
-                            last_data = torch.cat([last_data, init_ph_value], dim=1)  # 将流速信息与初始化的PH值拼接
+                        for batch_case, label in data_set:
 
-                            with torch.no_grad():
-                                output = model(last_data)[:, -1].unsqueeze(1)  # 使用先前预测的PH值作为输入
-                                predictions.append(output)
+                        # for i, batch in enumerate(data_set):
+                    #         last_data = batch.squeeze(0)
+                    #         init_ph_value = torch.zeros(last_data.shape[0], last_data.shape[1], 1)  # 初始化缺失的PH值
+                    #         last_data = torch.cat([last_data, init_ph_value], dim=1)  # 将流速信息与初始化的PH值拼接
+                    #
+                    #         with torch.no_grad():
+                    #             output = model(last_data)[:, -1].unsqueeze(1)  # 使用先前预测的PH值作为输入
+                    #             predictions.append(output)
+                    #
+                    #         if i < len(data_set) - 1:
+                    #             next_data = data_set.dataset[i + 1]
+                    #             next_data[:, :, 1] = torch.cat([next_data[:, 1:, 1], output], dim=1)  # 更新下一个输入的PH值
+                    #
+                    #     predictions = torch.cat(predictions, dim=1)
 
-                            if i < len(data_set) - 1:
-                                next_data = data_set.dataset[i + 1]
-                                next_data[:, :, 1] = torch.cat([next_data[:, 1:, 1], output], dim=1)  # 更新下一个输入的PH值
-
-                        predictions = torch.cat(predictions, dim=1)
-
-
-                            #
-                            # label.to(self.device)
-                            # batch_case = batch_case.transpose(0, 1)
-                            # batch_case = batch_case.to(torch.float32).to(self.device)
-                            # predict = model(batch_case).to(torch.float32).to(self.device)
-                            # predictions = torch.concat([predictions, predict.cpu()], dim=0)
+                            label.to(self.device)
+                            batch_case = batch_case.transpose(0, 1)
+                            batch_case = batch_case.to(torch.float32).to(self.device)
+                            predict = model(batch_case).to(torch.float32).to(self.device)
+                            predictions = torch.concat([predictions, predict.cpu()], dim=0)
 
                     i = 0
                     while i < self.output_size:
@@ -114,7 +113,7 @@ class Validator:
                 f, ax = plt.subplots(2, 1)
                 j = 0
                 for n in [True, False]:
-                    data_x, data_y, mean = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
+                    data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                  self.input_size, self.output_size, train=n).creat_new_dataset(
                         seq_len=self.seq_len)
                     data_set = GetLoader(data_x, data_y, window_size=self.seq_len, train=False)
@@ -123,41 +122,37 @@ class Validator:
                     # predictions = torch.empty(1, 1, self.output_size)
                     predictions = []
                     with torch.no_grad():
-                        for i, batch in enumerate(data_set):
+                        i = 0
+                        for batch, label in data_set:
                             batch = batch.transpose(0, 1)
-                            if batch.shape[2] != self.input_size:
-                                batch = batch[:, :, :self.input_size]
                             batch = batch.to(torch.float32).to(self.device)
                             if i == 0:
-                                mean = mean.view(1, 1, self.output_size)
-                                init_ph_value = torch.repeat_interleave(mean, repeats=batch.shape[0], dim=0)
-                                init_ph_value = torch.repeat_interleave(init_ph_value, repeats=batch.shape[1], dim=1)
-                                init_ph_value = init_ph_value.to(torch.float32).to(self.device)  # 初始化缺失的PH值
-                                batch = torch.cat([batch, init_ph_value], dim=2)  # 将流速信息与初始化的PH值拼接
+                                batch = batch
+                                pre_prediction = batch[:, :, :self.output_size]                # 将流速信息与初始化的PH值拼接
                             else:
-                                batch = torch.cat([batch, pre_prediction], dim=2)
+                                batch = torch.cat([pre_prediction, batch[:, :, -self.input_size].unsqueeze(1)], dim=2)
 
                             with torch.no_grad():
                                 output = model(batch)  # 使用先前预测的PH值作为输入
-                                predictions.append(output[-1, :, :])
+                                predictions.append(output[0, :, :])
 
                             if i < len(data_set) - 1:
-                                pre_prediction = output.clone()
+                                pre_prediction[:-1, :, :] = pre_prediction[1:, :, :]
+                                pre_prediction[-2, :, :] = output[0, :, :]
+                            i += 1
+                        predictions = torch.tensor(predictions)
 
-
-                        # for batch_case, label in data_set:
-                        #     label.to(self.device)
-                        #     batch_case = batch_case.transpose(0, 1)
-                        #     batch_case = batch_case.to(torch.float32).to(self.device)
-                        #     predict = model(batch_case).to(torch.float32).to(self.device)
-                        #     predictions = torch.concat([predictions, predict[:1, :, :].cpu()], dim=0)
-                    predictions = torch.tensor(predictions)
+                    #     for batch_case, label in data_set:
+                    #         label.to(self.device)
+                    #         batch_case = batch_case.transpose(0, 1)
+                    #         batch_case = batch_case.to(torch.float32).to(self.device)
+                    #         predict = model(batch_case).to(torch.float32).to(self.device)
+                    #         predictions = torch.concat([predictions, predict[-1, :, :].unsqueeze(1).cpu()], dim=0)
                     # predictions = predictions[1:, :, :].squeeze()
-                    fit_score = self.nrmse(data_y[:-self.seq_len+1, :] if self.seq_len != 1 else data_y
-                                           , predictions.clone().detach())
+
+                    fit_score = self.nrmse(data_y[0, :, :], predictions.clone().detach())
                     f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
-                    ax[j].plot(data_y[:-self.seq_len+1, :] if self.seq_len != 1 else data_y
-                               , color='c', label='real', linestyle='--', alpha=0.5)
+                    ax[j].plot(data_y[0, :, :], color='c', label='real', linestyle='--', alpha=0.5)
                     ax[j].plot(predictions, color='m', label='pred', alpha=0.8)
                     ax[j].tick_params(labelsize=5)
                     ax[j].legend(loc='best')

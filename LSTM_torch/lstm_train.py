@@ -39,6 +39,7 @@ class IssLstmTrainer:
         self.dataset = args.dataset
         self.curriculum_learning = args.curriculum_learning
         self.reg_methode = args.reg_methode
+        self.predict_horizon = args.predict_horizon
 
         self.gamma1 = args.gamma[0]
         self.gamma2 = args.gamma[1]
@@ -48,8 +49,8 @@ class IssLstmTrainer:
         self.regularizer = None
         self.dynamic_k = args.dynamic_K
         self.K_pid = args.PID_coefficient
-        self.window = args.window
-        self.loss_saver = SaveLoss(args.threshold, window=args.window)
+        self.window = None
+        self.loss_saver = None
         print(self.dynamic_k)
 
     def train_begin(self):
@@ -64,8 +65,10 @@ class IssLstmTrainer:
                 , r'../data/{}/train/train_output.csv'.format(self.dataset)
                 , r'../data/{}/val/val_input.csv'.format(self.dataset)
                 , r'../data/{}/val/val_output.csv'.format(self.dataset)]
-        train_x, train_y, _ = DataCreater(data[0], data[1], data[2], data[3], self.input_size
+        train_x, train_y = DataCreater(data[0], data[1], data[2], data[3], self.input_size
                                        , self.output_size).creat_new_dataset(seq_len=self.seq_len)
+        self.window = len(train_x[0, :, 0]) // 200
+        self.loss_saver = SaveLoss(self.threshold, window=self.window)
         train_set = GetLoader(train_x, train_y, window_size=self.seq_len, train=True)
         train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=2)
 
@@ -135,8 +138,8 @@ class IssLstmTrainer:
 
                 overshoot, response, steady_error = self.loss_saver.add_loss(torch.tensor([reg_loss]), epoch)
 
-                output = lstm_model(batch_cases)[-1, :, :].to(torch.float32).to(device)
-                labels = labels.to(torch.float32)[0, :, :].to(device)
+                output = lstm_model(batch_cases)[:self.predict_horizon, :, :].to(torch.float32).to(device)
+                labels = labels.to(torch.float32)[:self.predict_horizon, :, :].to(device)
                 loss_ = criterion(output, labels)
 
                 # if epoch == self.max_epochs-1:
@@ -165,8 +168,8 @@ class IssLstmTrainer:
                            torch.dot(response, 1 / dynamic_k[0, :]) + torch.dot(steady_error, dynamic_k[1, :]) + \
                            torch.dot(response, 1 / dynamic_k[2, :])
 
-                    # loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1] + reg_k_loss
-                    loss = loss_
+                    loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1] + reg_k_loss
+                    # loss = loss_
                     # print(relu_loss[0], tmp[0], relu_loss[1], tmp[1], relu_loss[0] * tmp[0] + relu_loss[1] * tmp[1])
                     # print(dynamic_k)
                     # print('rl0:{}, tmp0:{}, rl1:{}, tmp1:{}'.format(relu_loss[0], relu_loss[1], tmp[0], tmp[1]))

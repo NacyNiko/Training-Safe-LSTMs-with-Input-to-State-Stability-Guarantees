@@ -12,7 +12,7 @@ import validation
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
 parser.add_argument('--dataset', default='pHdata', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
-parser.add_argument('--hidden_size', default=6, help='hidden size of LSTM', type=int)
+parser.add_argument('--hidden_size', default=30, help='hidden size of LSTM', type=int)
 # if parser.parse_args().dataset == 'pHdata':
 #     input_size = output_size = 1
 # elif parser.parse_args().dataset == 'robot_inverse':
@@ -29,6 +29,7 @@ parser.add_argument('--epochs', default=100, help='maximum train epochs', type=i
 parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss', type=float)
 parser.add_argument('--tol_stop', default=1e-10, help='minimum tolerance between 2 epochs', type=float)
 parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM', type=int)
+parser.add_argument('--predict_horizon', default=1, help='prediction horizon of LSTM', type=int)
 
 
 parser.add_argument(
@@ -38,12 +39,12 @@ parser.add_argument('--PID_coefficient', default=([3, 1], [0.2, 1], [0.5, 0.5]),
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of gamma', type=torch.Tensor)
 parser.add_argument('--threshold', default=torch.tensor([-0.01, -0.05]), help='value of threshold', type=torch.Tensor)
-parser.add_argument('--window', default=200, type=int)
+# parser.add_argument('--window', default=200, type=int)
 
 
 if __name__ == '__main__':
     lstm_train.main(parser.parse_args())
-    # validation.main(parser.parse_args())
+    validation.main(parser.parse_args())
 
 
 # TODO: 1. Norm_x have upper/lower bound, but hard to measure the value
