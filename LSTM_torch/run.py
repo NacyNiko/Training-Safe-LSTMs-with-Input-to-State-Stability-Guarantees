@@ -12,15 +12,8 @@ import validation
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
 parser.add_argument('--dataset', default='pHdata', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
-parser.add_argument('--hidden_size', default=30, help='hidden size of LSTM', type=int)
-# if parser.parse_args().dataset == 'pHdata':
-#     input_size = output_size = 1
-# elif parser.parse_args().dataset == 'robot_inverse':
-#     input_size, output_size = 18, 6
-# elif parser.parse_args().dataset == 'robot_forward':
-#     input_size = output_size = 6
-# else:
-#     raise 'Nonexistent dataset!'
+parser.add_argument('--hidden_size', default=10, help='hidden size of LSTM', type=int)
+
 parser.add_argument('--input_size', default=1, help='input size of LSTM', type=int)
 parser.add_argument('--output_size', default=1, help='output size of output layer', type=int)
 parser.add_argument('--layers', default=1, help='number of layers of LSTM', type=int)
@@ -33,19 +26,26 @@ parser.add_argument('--predict_horizon', default=1, help='prediction horizon of 
 
 
 parser.add_argument(
-    '--curriculum_learning', default='PID', choices=[None, '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
-parser.add_argument('--dynamic_K', default=True, type=bool)
+    '--curriculum_learning', default=None, choices=[None, '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
+parser.add_argument('--dynamic_K', default=False, type=bool)
 parser.add_argument('--PID_coefficient', default=([3, 1], [0.2, 1], [0.5, 0.5]), type=tuple)
-parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
+parser.add_argument('--reg_methode', default='relu', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of gamma', type=torch.Tensor)
 parser.add_argument('--threshold', default=torch.tensor([-0.01, -0.05]), help='value of threshold', type=torch.Tensor)
-# parser.add_argument('--window', default=200, type=int)
-
 
 if __name__ == '__main__':
-    lstm_train.main(parser.parse_args())
-    validation.main(parser.parse_args())
+    threshold_values = [x for x in range(0, 11)]
+    gamma_values = [x for x in range(0, 11)]
+    for threshold in threshold_values:
+        for gamma in gamma_values:
+            print('threshold:{}, gamma:{}'.format(threshold, gamma))
 
+            args = parser.parse_args()
+            args.threshold = torch.tensor([threshold, threshold])
+            args.gamma = torch.tensor([gamma, gamma])
+
+            lstm_train.main(args)
+            validation.main(args)
 
 # TODO: 1. Norm_x have upper/lower bound, but hard to measure the value
 #       2. adaptive K_p, K_i, K_d, manual selection is expensive:

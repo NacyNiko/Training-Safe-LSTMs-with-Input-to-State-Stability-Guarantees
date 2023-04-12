@@ -2,6 +2,8 @@
 # @Time : 2022/12/13 14:41 
 # @Author : Yinan 
 # @File : validation.py
+import pickle
+
 import torch
 import numpy as np
 import pandas as pd
@@ -29,7 +31,14 @@ class Validator:
 
         # self.l_r = np.array(sum(list([i] * len(args.gamma) for i in range(0, len(args.gamma))), []))
         # self.l_thd = np.array(list(range(0, len(args.threshold))) * len(args.threshold))
-        self.l_c = []
+        if os.path.exists(r'./statistic/{}/constraints.pkl'.format(self.dataset)):
+            with open(r'./statistic/{}/constraints.pkl'.format(self.dataset), 'rb') as f:
+                self.l_c = pickle.load(f)
+            with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'rb') as f:
+                self.nrmse_list = pickle.load(f)
+        else:
+            self.l_c = []
+            self.nrmse_list = []
 
     def load_data(self):
         data_t = [r'../data/{}/train/train_input.csv'.format(self.dataset)
@@ -61,6 +70,8 @@ class Validator:
         c1, c2 = self.evaluate_constraint(model)
 
         self.l_c.append((float(c1), float(c2)))
+        with open(r'./statistic/{}/constraints.pkl'.format(self.dataset), 'wb') as f:
+            pickle.dump(self.l_c, f)
 
         if save_plot:
             if self.output_size > 1:
@@ -110,7 +121,7 @@ class Validator:
                         i += 1
                     plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
             else:
-                f, ax = plt.subplots(2, 1)
+                fig, ax = plt.subplots(2, 1)
                 j = 0
                 for n in [True, False]:
                     data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
@@ -151,7 +162,10 @@ class Validator:
                     # predictions = predictions[1:, :, :].squeeze()
 
                     fit_score = self.nrmse(data_y[0, :, :], predictions.clone().detach())
-                    f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
+                    self.nrmse_list.append(fit_score)
+                    with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'wb') as f:
+                        pickle.dump(self.nrmse_list, f)
+                    fig.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
                     ax[j].plot(data_y[0, :, :], color='c', label='real', linestyle='--', alpha=0.5)
                     ax[j].plot(predictions, color='m', label='pred', alpha=0.8)
                     ax[j].tick_params(labelsize=5)

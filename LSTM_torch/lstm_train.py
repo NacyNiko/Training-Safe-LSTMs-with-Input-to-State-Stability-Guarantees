@@ -152,7 +152,10 @@ class IssLstmTrainer:
                 relu_loss_fcn = LossRelu()
                 _, relu_loss = relu_loss_fcn(constraints, self.threshold)
 
-                gamma1, gamma2 = self.regularizer.forward(loss_, reg_loss)
+                if self.curriculum_learning is None:
+                    gamma1, gamma2 = self.gamma1, self.gamma2
+                else:
+                    gamma1, gamma2 = self.regularizer.forward(loss_, reg_loss)
 
                 if self.curriculum_learning == 'PID' and self.dynamic_k and None not in [overshoot, response, steady_error]:
                     overshoot = overshoot.float().to(device)
@@ -221,7 +224,6 @@ class IssLstmTrainer:
                                                                              self.curriculum_learning), index=False)
         # pd.DataFrame(results.cpu().detach()).to_csv('./statistic/{}/Test_{}_{}.csv'.format(self.dataset, self.reg_methode,
         #                                                                      self.curriculum_learning), index=False)
-
 
     def save_model(self, methode, curriculum_learning, model, gamma, thd):
         """ model save path """
