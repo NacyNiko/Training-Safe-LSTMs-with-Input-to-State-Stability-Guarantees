@@ -86,46 +86,26 @@ class DataCreater:
         train_y = torch.tensor(np.array(pd.read_csv(self.train_y_path if self.train else self.test_y_path , index_col=0)))
 
         """ create new data set """
-        x_list = torch.empty([seq_len, 1, self.input_size + self.output_size])   # seq_len, batch_size, input_dim
-        y_list = torch.empty([seq_len, 1, self.output_size])
+        feature = torch.cat([train_y[:-1, :], train_x[1:, :]], dim=1)
+        labels = train_y[1:, :]
 
-        l = len(train_x)-seq_len
-
-        # feature = torch.cat([train_x[:-1, :], train_y[:-1, :]], dim=1)
-        # labels = train_y[1:, :]
-        #
-        # return feature, labels, self.mean_y
-
-        for i in range(l):
-            """
-            feature0: previous y[i:i + seq_len] and 0 at time step y[seq_len + i]
-            feature1: input u[seq_len + i] at time step seq_len + i
-            """
-            feature0 = torch.cat([train_y[i:i + seq_len - 1, :].unsqueeze(1)
-                                     , torch.zeros([1, 1,  self.output_size])], dim=0)
-            feature1 = train_x[i:i + seq_len, :].unsqueeze(1)
-            feature = torch.cat([feature0, feature1], dim=2)
-
-            if i + 2 * seq_len < len(train_x):
-                x_list = torch.cat([x_list, feature], dim=1)
-                y_list = torch.cat([y_list, train_y[i + seq_len - 1:i + 2 * seq_len - 1, :].unsqueeze(1)], dim=1)
-        return x_list[:, 1:, :], y_list[:, 1:, :]
+        return feature, labels
 
 
 class GetLoader(torch.utils.data.Dataset):
-    def __init__(self, data_root, data_label, window_size, train: bool):
+    def __init__(self, data_root, data_label, seq_len, train: bool):
         self.data = data_root
         self.label = data_label
-        self.window_size = window_size
+        self.seq_len = seq_len
         self.train = train
 
     def __getitem__(self, index):
-        data = self.data[:, index, :]
-        labels = self.label[:, index, :]
+        data = self.data[index:index + self.seq_len, :]
+        labels = self.label[index: index + self.seq_len, :]
         return data, labels
 
     def __len__(self):
-        return len(self.data[0, :, 0])
+        return len(self.data[:, 0]) - self.seq_len
 
 
 class PlotGraph:

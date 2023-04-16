@@ -11,18 +11,17 @@ import validation
 
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
-parser.add_argument('--dataset', default='pHdata', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
-parser.add_argument('--hidden_size', default=10, help='hidden size of LSTM', type=int)
+parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
+parser.add_argument('--hidden_size', default=100, help='hidden size of LSTM', type=int)
 
-parser.add_argument('--input_size', default=1, help='input size of LSTM', type=int)
-parser.add_argument('--output_size', default=1, help='output size of output layer', type=int)
-parser.add_argument('--layers', default=1, help='number of layers of LSTM', type=int)
+parser.add_argument('--input_size', default=6, help='input size of LSTM', type=int)
+parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
+parser.add_argument('--layers', default=3, help='number of layers of LSTM', type=int)
 parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
-parser.add_argument('--epochs', default=100, help='maximum train epochs', type=int)
+parser.add_argument('--epochs', default=1, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss', type=float)
 parser.add_argument('--tol_stop', default=1e-10, help='minimum tolerance between 2 epochs', type=float)
-parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM', type=int)
-parser.add_argument('--predict_horizon', default=1, help='prediction horizon of LSTM', type=int)
+parser.add_argument('--len_sequence', default=200, help='length of input sequence to LSTM', type=int)
 
 
 parser.add_argument(
@@ -34,18 +33,23 @@ parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of ga
 parser.add_argument('--threshold', default=torch.tensor([-0.01, -0.05]), help='value of threshold', type=torch.Tensor)
 
 if __name__ == '__main__':
-    threshold_values = [x for x in range(0, 11)]
-    gamma_values = [x for x in range(0, 11)]
-    for threshold in threshold_values:
-        for gamma in gamma_values:
-            print('threshold:{}, gamma:{}'.format(threshold, gamma))
+    grid_Search = False
+    if grid_Search:
+        threshold_values = [x for x in range(0, 11)]
+        gamma_values = [x for x in range(0, 11)]
+        for threshold in threshold_values:
+            for gamma in gamma_values:
+                print('threshold:{}, gamma:{}'.format(threshold, gamma))
 
-            args = parser.parse_args()
-            args.threshold = torch.tensor([threshold, threshold])
-            args.gamma = torch.tensor([gamma, gamma])
+                args = parser.parse_args()
+                args.threshold = torch.tensor([threshold, threshold])
+                args.gamma = torch.tensor([gamma, gamma])
 
-            lstm_train.main(args)
-            validation.main(args)
+                lstm_train.main(args)
+                validation.main(args)
+    else:
+        lstm_train.main(parser.parse_args())
+        validation.main(parser.parse_args())
 
 # TODO: 1. Norm_x have upper/lower bound, but hard to measure the value
 #       2. adaptive K_p, K_i, K_d, manual selection is expensive:

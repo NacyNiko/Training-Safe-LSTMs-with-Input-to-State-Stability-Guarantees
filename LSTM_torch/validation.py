@@ -23,7 +23,7 @@ class Validator:
         self.hidden_size = args.hidden_size
         self.output_size = args.output_size
         self.num_layers = args.layers
-        self.seq_len = args.len_sequence
+        self.seq_len = 1
         self.device = device
         self.cur = args.curriculum_learning
         self.reg_mth = args.reg_methode
@@ -34,8 +34,8 @@ class Validator:
         if os.path.exists(r'./statistic/{}/constraints.pkl'.format(self.dataset)):
             with open(r'./statistic/{}/constraints.pkl'.format(self.dataset), 'rb') as f:
                 self.l_c = pickle.load(f)
-            with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'rb') as f:
-                self.nrmse_list = pickle.load(f)
+            # with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'rb') as f:
+            #     self.nrmse_list = pickle.load(f)
         else:
             self.l_c = []
             self.nrmse_list = []
@@ -78,42 +78,38 @@ class Validator:
                 for n in [True, False]:
                     f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
 
-                    data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1]
-                                                 , self.input_size, self.output_size, train=n).creat_new_dataset(
+                    hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
+                              , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
+                    # current_y = torch.zeros([self.seq_len, 1, self.output_size]).to(self.device)
+                    data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
+                                                 self.input_size, self.output_size, train=n).creat_new_dataset(
                         seq_len=self.seq_len)
-                    data_set = GetLoader(data_x, data_y, window_size=self.seq_len, train=False)
+                    data_set = GetLoader(data_x, data_y, seq_len=self.seq_len, train=False)
 
-                    data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
-                    # predictions = []
+                    data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=True, num_workers=0)
+                    predictions = torch.empty([1, self.output_size]).to(self.device)
                     with torch.no_grad():
-                        for batch_case, label in data_set:
+                        j = 0
+                        for batch, label in data_set:
+                            batch = batch.transpose(0, 1)
+                            batch = batch.to(torch.float32).to(self.device)
 
-                        # for i, batch in enumerate(data_set):
-                    #         last_data = batch.squeeze(0)
-                    #         init_ph_value = torch.zeros(last_data.shape[0], last_data.shape[1], 1)  # 初始化缺失的PH值
-                    #         last_data = torch.cat([last_data, init_ph_value], dim=1)  # 将流速信息与初始化的PH值拼接
-                    #
-                    #         with torch.no_grad():
-                    #             output = model(last_data)[:, -1].unsqueeze(1)  # 使用先前预测的PH值作为输入
-                    #             predictions.append(output)
-                    #
-                    #         if i < len(data_set) - 1:
-                    #             next_data = data_set.dataset[i + 1]
-                    #             next_data[:, :, 1] = torch.cat([next_data[:, 1:, 1], output], dim=1)  # 更新下一个输入的PH值
-                    #
-                    #     predictions = torch.cat(predictions, dim=1)
+                            if j > 1000:
+                                temp = batch[:, :, :self.input_size] - current_y
+                                batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
 
-                            label.to(self.device)
-                            batch_case = batch_case.transpose(0, 1)
-                            batch_case = batch_case.to(torch.float32).to(self.device)
-                            predict = model(batch_case).to(torch.float32).to(self.device)
-                            predictions = torch.concat([predictions, predict.cpu()], dim=0)
+                            with torch.no_grad():
+                                output, hidden = model(batch, hidden)
+                                predictions = torch.cat([predictions, output[0, :, :]], dim=0)
+                                current_y = output[0, :, :].unsqueeze(1)
+                            j += 1
 
                     i = 0
+                    predictions = predictions.cpu()
                     while i < self.output_size:
-                        fit_score = self.nrmse(data_y[:, i], predictions[1:, i].clone().detach())
+                        fit_score = self.nrmse(data_y[:, i], predictions[:, i].clone().detach())
                         f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
-                        ax[i].plot(predictions[1:, i], color='m', label='pred', alpha=0.8)
+                        ax[i].plot(predictions[:, i], color='m', label='pred', alpha=0.8)
                         ax[i].plot(data_y[:, i], color='c', label='real', linestyle='--', alpha=0.5)
                         ax[i].tick_params(labelsize=5)
                         ax[i].legend(loc='best')
@@ -124,50 +120,41 @@ class Validator:
                 fig, ax = plt.subplots(2, 1)
                 j = 0
                 for n in [True, False]:
+                    hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
+                              , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
+                    # current_y = torch.zeros([self.seq_len, 1, self.output_size]).to(self.device)
                     data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                  self.input_size, self.output_size, train=n).creat_new_dataset(
                         seq_len=self.seq_len)
-                    data_set = GetLoader(data_x, data_y, window_size=self.seq_len, train=False)
+                    data_set = GetLoader(data_x, data_y, seq_len=self.seq_len, train=False)
 
                     data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
-                    # predictions = torch.empty(1, 1, self.output_size)
                     predictions = []
                     with torch.no_grad():
                         i = 0
                         for batch, label in data_set:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
+
                             if i == 0:
-                                batch = batch
-                                pre_prediction = batch[:, :, :self.output_size]                # 将流速信息与初始化的PH值拼接
+                                pass
                             else:
-                                batch = torch.cat([pre_prediction, batch[:, :, -self.input_size].unsqueeze(1)], dim=2)
+                                batch = torch.cat([current_y, batch[:, :, self.output_size:].unsqueeze(1)], dim=2)
 
                             with torch.no_grad():
-                                output = model(batch)  # 使用先前预测的PH值作为输入
+                                output, hidden = model(batch, hidden)
                                 predictions.append(output[0, :, :])
-
-                            if i < len(data_set) - 1:
-                                pre_prediction[:-1, :, :] = pre_prediction[1:, :, :]
-                                pre_prediction[-2, :, :] = output[0, :, :]
+                                current_y = output[0, :, :].unsqueeze(1)
                             i += 1
                         predictions = torch.tensor(predictions)
 
-                    #     for batch_case, label in data_set:
-                    #         label.to(self.device)
-                    #         batch_case = batch_case.transpose(0, 1)
-                    #         batch_case = batch_case.to(torch.float32).to(self.device)
-                    #         predict = model(batch_case).to(torch.float32).to(self.device)
-                    #         predictions = torch.concat([predictions, predict[-1, :, :].unsqueeze(1).cpu()], dim=0)
-                    # predictions = predictions[1:, :, :].squeeze()
-
-                    fit_score = self.nrmse(data_y[0, :, :], predictions.clone().detach())
+                    fit_score = self.nrmse(data_y[6:, 0], predictions[5:].clone().detach())
                     self.nrmse_list.append(fit_score)
                     with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'wb') as f:
                         pickle.dump(self.nrmse_list, f)
                     fig.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
-                    ax[j].plot(data_y[0, :, :], color='c', label='real', linestyle='--', alpha=0.5)
-                    ax[j].plot(predictions, color='m', label='pred', alpha=0.8)
+                    ax[j].plot(data_y[6:, :], color='c', label='real', linestyle='--', alpha=0.5)
+                    ax[j].plot(predictions[5:], color='m', label='pred', alpha=0.8)
                     ax[j].tick_params(labelsize=5)
                     ax[j].legend(loc='best')
                     ax[j].set_title('NRMSE on {} set: {:.3f}'.format('train' if n else 'val', float(fit_score)))
