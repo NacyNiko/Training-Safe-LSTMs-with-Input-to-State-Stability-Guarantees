@@ -100,15 +100,11 @@ class Validator:
                             batch = batch.to(torch.float32).to(self.device)
 
                             if j > self.seq_len:
-                                x = batch[:, :, self.output_size:]
-                                y = batch[:, :, :self.output_size]
-                                temp = (batch[:, :, :self.output_size] - current_y) / batch[:, :, :self.output_size]
                                 batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
 
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
-                                temp = output[0, :].unsqueeze(0)
-                                predictions = torch.cat([predictions, output[0, :].unsqueeze(0)], dim=0)
+                                predictions = torch.cat([predictions, output[0, :].unsqueeze(0) * stat_y[1] + stat_y[0]], dim=0)
                                 current_y = output[0, :].unsqueeze(0).unsqueeze(0)
                             j += 1
 
