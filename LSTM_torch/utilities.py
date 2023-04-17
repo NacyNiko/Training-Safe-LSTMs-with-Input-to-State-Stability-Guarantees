@@ -76,7 +76,7 @@ class DataCreater:
 
         self.mean_y = torch.mean(torch.tensor(np.array(pd.read_csv(self.train_y_path, index_col=0))).to(torch.float32), dim=0)
 
-    def creat_new_dataset(self, seq_len=20):
+    def creat_new_dataset(self, seq_len):
         """ read original data """
 
         train_x = torch.tensor(np.array(pd.read_csv(self.train_x_path if self.train else self.test_x_path, index_col=0))).to(torch.float32)
@@ -86,8 +86,8 @@ class DataCreater:
         train_y = torch.tensor(np.array(pd.read_csv(self.train_y_path if self.train else self.test_y_path , index_col=0)))
 
         """ create new data set """
-        feature = torch.cat([train_y[:-1, :], train_x[1:, :]], dim=1)
-        labels = train_y[1:, :]
+        feature = torch.cat([train_y[:-1, :], train_x[:-1, :]], dim=1)
+        labels = train_y[seq_len:, :]
 
         return feature, labels
 
@@ -101,11 +101,11 @@ class GetLoader(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         data = self.data[index:index + self.seq_len, :]
-        labels = self.label[index: index + self.seq_len, :]
+        labels = self.label[index, :]
         return data, labels
 
     def __len__(self):
-        return len(self.data[:, 0]) - self.seq_len
+        return len(self.label[:, 0])
 
 
 class PlotGraph:

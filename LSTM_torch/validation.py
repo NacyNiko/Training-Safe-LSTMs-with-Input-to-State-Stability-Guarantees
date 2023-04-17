@@ -34,8 +34,9 @@ class Validator:
         if os.path.exists(r'./statistic/{}/constraints.pkl'.format(self.dataset)):
             with open(r'./statistic/{}/constraints.pkl'.format(self.dataset), 'rb') as f:
                 self.l_c = pickle.load(f)
-            # with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'rb') as f:
-            #     self.nrmse_list = pickle.load(f)
+        if os.path.exists(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset)):
+            with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'rb') as f:
+                self.nrmse_list = pickle.load(f)
         else:
             self.l_c = []
             self.nrmse_list = []
@@ -80,7 +81,7 @@ class Validator:
 
                     hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
                               , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
-                    # current_y = torch.zeros([self.seq_len, 1, self.output_size]).to(self.device)
+
                     data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                  self.input_size, self.output_size, train=n).creat_new_dataset(
                         seq_len=self.seq_len)
@@ -98,18 +99,20 @@ class Validator:
                                 temp = batch[:, :, :self.input_size] - current_y
                                 batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
 
+
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
-                                predictions = torch.cat([predictions, output[0, :, :]], dim=0)
-                                current_y = output[0, :, :].unsqueeze(1)
+                                temp = output[0, :].unsqueeze(0)
+                                predictions = torch.cat([predictions, output[0, :].unsqueeze(0)], dim=0)
+                                current_y = output[0, :].unsqueeze(0).unsqueeze(0)
                             j += 1
 
                     i = 0
                     predictions = predictions.cpu()
                     while i < self.output_size:
-                        fit_score = self.nrmse(data_y[:, i], predictions[:, i].clone().detach())
+                        fit_score = self.nrmse(data_y[:, i], predictions[1:, i].clone().detach())
                         f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
-                        ax[i].plot(predictions[:, i], color='m', label='pred', alpha=0.8)
+                        ax[i].plot(predictions[1:, i], color='m', label='pred', alpha=0.8)
                         ax[i].plot(data_y[:, i], color='c', label='real', linestyle='--', alpha=0.5)
                         ax[i].tick_params(labelsize=5)
                         ax[i].legend(loc='best')
@@ -136,24 +139,22 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            if i == 0:
-                                pass
-                            else:
-                                batch = torch.cat([current_y, batch[:, :, self.output_size:].unsqueeze(1)], dim=2)
+                            if i > 5:
+                                batch = torch.cat([current_y.unsqueeze(0), batch[:, :, self.output_size:]], dim=2)
 
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
-                                predictions.append(output[0, :, :])
-                                current_y = output[0, :, :].unsqueeze(1)
+                                predictions.append(output[0, :])
+                                current_y = output[0, :].unsqueeze(1)
                             i += 1
                         predictions = torch.tensor(predictions)
 
-                    fit_score = self.nrmse(data_y[6:, 0], predictions[5:].clone().detach())
+                    fit_score = self.nrmse(data_y[5:, 0], predictions[5:].clone().detach())
                     self.nrmse_list.append(fit_score)
                     with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'wb') as f:
                         pickle.dump(self.nrmse_list, f)
                     fig.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
-                    ax[j].plot(data_y[6:, :], color='c', label='real', linestyle='--', alpha=0.5)
+                    ax[j].plot(data_y[5:, :], color='c', label='real', linestyle='--', alpha=0.5)
                     ax[j].plot(predictions[5:], color='m', label='pred', alpha=0.8)
                     ax[j].tick_params(labelsize=5)
                     ax[j].legend(loc='best')

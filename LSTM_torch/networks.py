@@ -18,11 +18,11 @@ class LstmRNN(nn.Module):
             x, hidden = self.lstm(_x)  # _x is input, size (batch, seq len, input_size)
         else:
             x, hidden = self.lstm(_x, hidden)
-        s, b, h = x.shape  # x is output, size (batch, seq len, hidden_size)
+        b, s, h = x.shape  # x is output, size (batch, seq len, hidden_size)
         x = x.view(s * b, h)
         x = self.linear1(x)
-        x = x.view(s, b, -1)
-        return x, hidden
+        x = x.view(b, s, -1)
+        return x[:, -1, :], hidden
 
 
 class PidNN(nn.Module):
