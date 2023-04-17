@@ -132,7 +132,7 @@ class IssLstmTrainer:
             print(epoch)
             for batch_cases, labels in train_set:
                 batch_cases = batch_cases.transpose(0, 1).to(torch.float32).to(device) # [batch size, seq len, feature]
-                labels = labels.transpose(0, 1).to(torch.float32).to(device)
+                labels = labels.to(torch.float32).to(device)
 
                 # calculate loss
                 constraints, weight_save = cal_constraints(self.hidden_size, lstm_model.lstm.parameters(), df=weight_save)
