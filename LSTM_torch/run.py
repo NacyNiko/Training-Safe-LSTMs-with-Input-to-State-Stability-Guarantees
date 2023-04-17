@@ -12,7 +12,7 @@ import validation
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
 parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
-parser.add_argument('--hidden_size', default=20, help='hidden size of LSTM', type=int)
+parser.add_argument('--hidden_size', default=80, help='hidden size of LSTM', type=int)
 
 parser.add_argument('--input_size', default=6, help='input size of LSTM', type=int)
 parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
@@ -48,7 +48,7 @@ if __name__ == '__main__':
                 lstm_train.main(args)
                 validation.main(args)
     else:
-        lstm_train.main(parser.parse_args())
+        # lstm_train.main(parser.parse_args())
         validation.main(parser.parse_args())
 
 # TODO: 1. Norm_x have upper/lower bound, but hard to measure the value

@@ -79,9 +79,6 @@ class Validator:
                 for n in [True, False]:
                     f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
 
-                    hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
-                              , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
-
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                  self.input_size, self.output_size, train=n).creat_new_dataset(
                         seq_len=1)
@@ -103,7 +100,7 @@ class Validator:
                                 batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
 
                             with torch.no_grad():
-                                output, hidden = model(batch, hidden)
+                                output, hidden = model(batch)
                                 predictions = torch.cat([predictions, output[0, :].unsqueeze(0) * stat_y[1] + stat_y[0]], dim=0)
                                 current_y = output[0, :].unsqueeze(0).unsqueeze(0)
                             j += 1
