@@ -71,25 +71,25 @@ class DataCreater:
         self.output_size = output_size
         self.train = train
 
-        self.mean = torch.mean(torch.tensor(np.array(pd.read_csv(self.train_x_path, index_col=0))).to(torch.float32), dim=0)
-        self.std = torch.std(torch.tensor(np.array(pd.read_csv(self.train_x_path, index_col=0))).to(torch.float32), dim=0)
-
-        self.mean_y = torch.mean(torch.tensor(np.array(pd.read_csv(self.train_y_path, index_col=0))).to(torch.float32), dim=0)
+        self.x = torch.tensor(np.array(pd.read_csv(self.train_x_path, index_col=0))).to(torch.float32)
+        self.y = torch.tensor(np.array(pd.read_csv(self.train_y_path, index_col=0))).to(torch.float32)
+        self.mean_x, self.std_x, self.mean_y, self.std_y = torch.mean(self.x, dim=0)\
+            , torch.std(self.x, dim=0), torch.mean(self.y, dim=0), torch.std(self.y, dim=0)
 
     def creat_new_dataset(self, seq_len):
         """ read original data """
-
         train_x = torch.tensor(np.array(pd.read_csv(self.train_x_path if self.train else self.test_x_path, index_col=0))).to(torch.float32)
+        train_x = (train_x - self.mean_x) / self.std_x   # normilization
 
-        train_x = (train_x - self.mean) / self.std   # normilization
-        # TODO：only use mean/ std of training set, torch.mean
         train_y = torch.tensor(np.array(pd.read_csv(self.train_y_path if self.train else self.test_y_path , index_col=0)))
+        labels = train_y.clone()
+        train_y = (train_y - self.mean_y) / self.std_y
 
         """ create new data set """
         feature = torch.cat([train_y[:-1, :], train_x[:-1, :]], dim=1)
-        labels = train_y[seq_len:, :]
+        labels = labels[seq_len:, :]
 
-        return feature, labels
+        return feature, labels, [self.mean_x, self.std_x], [self.mean_y, self.std_y]
 
 
 class GetLoader(torch.utils.data.Dataset):

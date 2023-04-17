@@ -23,7 +23,7 @@ class Validator:
         self.hidden_size = args.hidden_size
         self.output_size = args.output_size
         self.num_layers = args.layers
-        self.seq_len = 1
+        self.seq_len = args.len_sequence
         self.device = device
         self.cur = args.curriculum_learning
         self.reg_mth = args.reg_methode
@@ -82,10 +82,14 @@ class Validator:
                     hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
                               , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
 
-                    data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
+                    data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                  self.input_size, self.output_size, train=n).creat_new_dataset(
-                        seq_len=self.seq_len)
-                    data_set = GetLoader(data_x, data_y, seq_len=self.seq_len, train=False)
+                        seq_len=1)
+                    stat_x[0] = stat_x[0].to(self.device)
+                    stat_x[1] = stat_x[1].to(self.device)
+                    stat_y[0] = stat_y[0].to(self.device)
+                    stat_y[1] = stat_y[1].to(self.device)
+                    data_set = GetLoader(data_x, data_y, seq_len=1, train=False)
 
                     data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=True, num_workers=0)
                     predictions = torch.empty([1, self.output_size]).to(self.device)
@@ -95,10 +99,11 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            if j > 1000:
-                                temp = batch[:, :, :self.input_size] - current_y
+                            if j > self.seq_len:
+                                x = batch[:, :, self.output_size:]
+                                y = batch[:, :, :self.output_size]
+                                temp = (batch[:, :, :self.output_size] - current_y) / batch[:, :, :self.output_size]
                                 batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
-
 
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
@@ -126,10 +131,14 @@ class Validator:
                     hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
                               , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
                     # current_y = torch.zeros([self.seq_len, 1, self.output_size]).to(self.device)
-                    data_x, data_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
+                    data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                  self.input_size, self.output_size, train=n).creat_new_dataset(
-                        seq_len=self.seq_len)
-                    data_set = GetLoader(data_x, data_y, seq_len=self.seq_len, train=False)
+                        seq_len=1)
+                    stat_x[0] = stat_x[0].to(self.device)
+                    stat_x[1] = stat_x[1].to(self.device)
+                    stat_y[0] = stat_y[0].to(self.device)
+                    stat_y[1] = stat_y[1].to(self.device)
+                    data_set = GetLoader(data_x, data_y, seq_len=1, train=False)
 
                     data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
                     predictions = []
@@ -139,12 +148,12 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            if i > 5:
+                            if i > self.seq_len:
                                 batch = torch.cat([current_y.unsqueeze(0), batch[:, :, self.output_size:]], dim=2)
 
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
-                                predictions.append(output[0, :])
+                                predictions.append(output[0, :] * stat_y[1] + stat_y[0])
                                 current_y = output[0, :].unsqueeze(1)
                             i += 1
                         predictions = torch.tensor(predictions)

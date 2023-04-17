@@ -64,8 +64,12 @@ class IssLstmTrainer:
                 , r'../data/{}/train/train_output.csv'.format(self.dataset)
                 , r'../data/{}/val/val_input.csv'.format(self.dataset)
                 , r'../data/{}/val/val_output.csv'.format(self.dataset)]
-        train_x, train_y = DataCreater(data[0], data[1], data[2], data[3], self.input_size
+        train_x, train_y, stat_x, stat_y = DataCreater(data[0], data[1], data[2], data[3], self.input_size
                                        , self.output_size).creat_new_dataset(seq_len=self.seq_len)
+        stat_x[0] = stat_x[0].to(device)
+        stat_x[1] = stat_x[1].to(device)
+        stat_y[0] = stat_y[0].to(device)
+        stat_y[1] = stat_y[1].to(device)
         self.window = len(train_x[:, 0]) // 200
         self.loss_saver = SaveLoss(self.threshold, window=self.window)
         train_set = GetLoader(train_x, train_y, seq_len=self.seq_len, train=True)
@@ -137,7 +141,8 @@ class IssLstmTrainer:
                 overshoot, response, steady_error = self.loss_saver.add_loss(torch.tensor([reg_loss]), epoch)
 
                 output, _ = lstm_model(batch_cases)
-                output = output.to(torch.float32).to(device)
+                output = output * stat_y[1] + stat_y[0]
+                output = output.to(torch.float32)
                 loss_ = criterion(output, labels)
 
                 if self.curriculum_learning == 'PID' and self.dynamic_k:
