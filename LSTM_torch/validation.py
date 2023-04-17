@@ -77,6 +77,8 @@ class Validator:
         if save_plot:
             if self.output_size > 1:
                 for n in [True, False]:
+                    hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
+                              , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
                     f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
 
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
@@ -100,9 +102,9 @@ class Validator:
                                 batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
 
                             with torch.no_grad():
-                                output, hidden = model(batch)
-                                predictions = torch.cat([predictions, output[0, :].unsqueeze(0) * stat_y[1] + stat_y[0]], dim=0)
-                                current_y = output[0, :].unsqueeze(0).unsqueeze(0)
+                                output, hidden = model(batch, hidden)
+                                predictions = torch.cat([predictions, output* stat_y[1] + stat_y[0]], dim=0)
+                                current_y = output.unsqueeze(0)
                             j += 1
 
                     i = 0
@@ -123,7 +125,7 @@ class Validator:
                 for n in [True, False]:
                     hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
                               , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
-                    # current_y = torch.zeros([self.seq_len, 1, self.output_size]).to(self.device)
+
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                  self.input_size, self.output_size, train=n).creat_new_dataset(
                         seq_len=1)
@@ -142,12 +144,12 @@ class Validator:
                             batch = batch.to(torch.float32).to(self.device)
 
                             if i > self.seq_len:
-                                batch = torch.cat([current_y.unsqueeze(0), batch[:, :, self.output_size:]], dim=2)
+                                batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
 
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
-                                predictions.append(output[0, :] * stat_y[1] + stat_y[0])
-                                current_y = output[0, :].unsqueeze(1)
+                                predictions.append(output * stat_y[1] + stat_y[0])
+                                current_y = output.unsqueeze(1)
                             i += 1
                         predictions = torch.tensor(predictions)
 

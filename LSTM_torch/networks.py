@@ -15,14 +15,14 @@ class LstmRNN(nn.Module):
 
     def forward(self, _x, hidden=None):
         if hidden is None:
-            x, hidden = self.lstm(_x)  # _x is input, size (batch, seq len, input_size)
+            x, (hidden, cell) = self.lstm(_x)  # _x is input, size (seq len, batch, input_size)
         else:
-            x, hidden = self.lstm(_x, hidden)
-        b, s, h = x.shape  # x is output, size (batch, seq len, hidden_size)
+            x, (hidden, cell) = self.lstm(_x, hidden)
+        s, b, h = x.shape  # x is output, size (seq len, batch, hidden_size)
         x = x.view(s * b, h)
         x = self.linear1(x)
-        x = x.view(b, s, -1)
-        return x[:, -1, :], hidden
+        x = x.view(s, b, -1)
+        return x[-1, :, :], (hidden, cell)
 
 
 class PidNN(nn.Module):

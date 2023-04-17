@@ -131,8 +131,8 @@ class IssLstmTrainer:
         for epoch in range(self.max_epochs):
             print(epoch)
             for batch_cases, labels in train_set:
-                batch_cases = batch_cases.to(torch.float32).to(device) # [batch size, seq len, feature]
-                labels = labels.to(torch.float32).to(device)
+                batch_cases = batch_cases.transpose(0, 1).to(torch.float32).to(device) # [batch size, seq len, feature]
+                labels = labels.transpose(0, 1).to(torch.float32).to(device)
 
                 # calculate loss
                 constraints, weight_save = cal_constraints(self.hidden_size, lstm_model.lstm.parameters(), df=weight_save)
@@ -142,7 +142,7 @@ class IssLstmTrainer:
 
                 output, _ = lstm_model(batch_cases)
                 output = output * stat_y[1] + stat_y[0]
-                output = output.to(torch.float32)
+                output = output.to(torch.float32).reshape(labels.shape)
                 loss_ = criterion(output, labels)
 
                 if self.curriculum_learning == 'PID' and self.dynamic_k:
