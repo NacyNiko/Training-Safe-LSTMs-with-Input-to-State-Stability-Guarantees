@@ -103,8 +103,8 @@ class Validator:
 
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
-                                predictions = torch.cat([predictions, output* stat_y[1] + stat_y[0]], dim=0)
-                                current_y = output.unsqueeze(0)
+                                predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
+                                current_y = output.unsqueeze(1)
                             j += 1
 
                     i = 0
