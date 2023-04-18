@@ -98,7 +98,7 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            if j <= 500:
+                            if j <= 2500:
                                 previous_y = batch[:, :, :self.output_size]
 
                             else:
@@ -108,7 +108,7 @@ class Validator:
                                 output, hidden = model(batch, hidden)
                                 temp = output * stat_y[1] + stat_y[0]
                                 predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
-                                if j >= 500:
+                                if j >= 2500:
                                     previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
                                     previous_y = previous_y[1:, :, :]
                             j += 1
@@ -149,16 +149,19 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            if i == 0:
+                            if i <= 100:
                                 previous_y = batch[:, :, :self.output_size]
 
-                            if i > self.seq_len:
+                            else:
                                 batch[:, :, :self.output_size] = previous_y
+
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
+                                temp = output * stat_y[1] + stat_y[0]
                                 predictions.append(output * stat_y[1] + stat_y[0])
-                                previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
-                                previous_y = previous_y[1:, :, :]
+                                if i >= 100:
+                                    previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
+                                    previous_y = previous_y[1:, :, :]
                             i += 1
                         predictions = torch.tensor(predictions)
 
