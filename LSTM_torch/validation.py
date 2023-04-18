@@ -98,10 +98,13 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
+                            # if j > 0:
+                            #     diff_ = (batch[-1, :, :self.output_size] - output) / batch[-1, :, :self.output_size]
                             if j <= 2500:
                                 previous_y = batch[:, :, :self.output_size]
 
                             else:
+                                # diff = (batch[:, :, :self.output_size] - previous_y) / batch[:, :, :self.output_size]
                                 batch[:, :, :self.output_size] = previous_y
 
                             with torch.no_grad():
