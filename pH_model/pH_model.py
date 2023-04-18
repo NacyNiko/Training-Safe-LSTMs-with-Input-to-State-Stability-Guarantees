@@ -91,26 +91,26 @@ def main():
     # TODO: Add whitenoise to input and output data to prevent overfitting.
     #   Keep the unnoised data for plotting however.
 
-    train = True
+    train = False
     noise_mulipiler = 0
     if train:   # train: 17 val: 27
         np.random.seed(17)
         training_samples = 4400
         if noise_mulipiler:
-            save_path = [r'../data/train/train_input_noise.csv',
-                         r'../data/train/train_output_noise.csv']
+            save_path = [r'../data/pHdata/train/train_input_noise.csv',
+                         r'../data/pHdata/train/train_output_noise.csv']
         else:
-            save_path = [r'../data/train/train_input_clean.csv',
-                         r'../data/train/train_output_clean.csv']
+            save_path = [r'../data/pHdata/train/train_input_clean.csv',
+                         r'../data/pHdata/train/train_output_clean.csv']
     else:
         np.random.seed(27)
         training_samples = 2250
         if noise_mulipiler:
-            save_path = [r'../data/val/val_input_noise.csv',
-                         r'../data/val/val_output_noise.csv']
+            save_path = [r'../data/pHdata/val/val_input_noise.csv',
+                         r'../data/pHdata/val/val_output_noise.csv']
         else:
-            save_path = [r'../data/val/val_input_clean.csv',
-                     r'../data/val/val_output_clean.csv']
+            save_path = [r'../data/pHdata/val/val_input_clean.csv',
+                     r'../data/pHdata/val/val_output_clean.csv']
 
 
     sampling_time = 10
