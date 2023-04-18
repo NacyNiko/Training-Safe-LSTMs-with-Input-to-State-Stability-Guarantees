@@ -12,11 +12,11 @@ import validation
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
 parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
-parser.add_argument('--hidden_size', default=200, help='hidden size of LSTM', type=int)
+parser.add_argument('--hidden_size', default=300, help='hidden size of LSTM', type=int)
 
 parser.add_argument('--input_size', default=6, help='input size of LSTM', type=int)
 parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
-parser.add_argument('--layers', default=2, help='number of layers of LSTM', type=int)
+parser.add_argument('--layers', default=1, help='number of layers of LSTM', type=int)
 parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
 parser.add_argument('--epochs', default=100, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss', type=float)
