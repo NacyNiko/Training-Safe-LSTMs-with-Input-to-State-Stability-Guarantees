@@ -12,7 +12,7 @@ import validation
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
 parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
-parser.add_argument('--hidden_size', default=100, help='hidden size of LSTM', type=int)
+parser.add_argument('--hidden_size', default=500, help='hidden size of LSTM', type=int)
 
 parser.add_argument('--input_size', default=6, help='input size of LSTM', type=int)
 parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
