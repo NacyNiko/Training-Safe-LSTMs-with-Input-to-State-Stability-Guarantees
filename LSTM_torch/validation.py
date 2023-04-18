@@ -83,12 +83,12 @@ class Validator:
 
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                  self.input_size, self.output_size, train=n).creat_new_dataset(
-                        seq_len=1)
+                        seq_len=self.seq_len)
                     stat_x[0] = stat_x[0].to(self.device)
                     stat_x[1] = stat_x[1].to(self.device)
                     stat_y[0] = stat_y[0].to(self.device)
                     stat_y[1] = stat_y[1].to(self.device)
-                    data_set = GetLoader(data_x, data_y, seq_len=1, train=False)
+                    data_set = GetLoader(data_x, data_y, seq_len=self.seq_len, train=False)
 
                     data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=True, num_workers=0)
                     predictions = torch.empty([1, self.output_size]).to(self.device)
@@ -98,11 +98,12 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            if j > self.seq_len:
-                                batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
+                            if j > 0:
+                                batch[-1, :, :self.output_size] = current_y
+                                # batch = torch.cat([current_y, batch[:, :, :self.output_size]], dim=2)
 
                             with torch.no_grad():
-                                output, hidden = model(batch, hidden)
+                                output, hidden = model(batch)
                                 predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
                                 current_y = output.unsqueeze(1)
                             j += 1
@@ -128,12 +129,12 @@ class Validator:
 
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                  self.input_size, self.output_size, train=n).creat_new_dataset(
-                        seq_len=1)
+                        seq_len=self.seq_len)
                     stat_x[0] = stat_x[0].to(self.device)
                     stat_x[1] = stat_x[1].to(self.device)
                     stat_y[0] = stat_y[0].to(self.device)
                     stat_y[1] = stat_y[1].to(self.device)
-                    data_set = GetLoader(data_x, data_y, seq_len=1, train=False)
+                    data_set = GetLoader(data_x, data_y, seq_len=self.seq_len, train=False)
 
                     data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
                     predictions = []
@@ -144,8 +145,8 @@ class Validator:
                             batch = batch.to(torch.float32).to(self.device)
 
                             if i > self.seq_len:
-                                batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
-
+                                # batch = torch.cat([current_y, batch[:, :, self.output_size:]], dim=2)
+                                batch[-1, :, :self.output_size] = current_y
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
                                 predictions.append(output * stat_y[1] + stat_y[0])

@@ -16,7 +16,7 @@ parser.add_argument('--hidden_size', default=100, help='hidden size of LSTM', ty
 
 parser.add_argument('--input_size', default=6, help='input size of LSTM', type=int)
 parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
-parser.add_argument('--layers', default=3, help='number of layers of LSTM', type=int)
+parser.add_argument('--layers', default=1, help='number of layers of LSTM', type=int)
 parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
 parser.add_argument('--epochs', default=100, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss', type=float)
@@ -48,7 +48,7 @@ if __name__ == '__main__':
                 lstm_train.main(args)
                 validation.main(args)
     else:
-        lstm_train.main(parser.parse_args())
+        # lstm_train.main(parser.parse_args())
         validation.main(parser.parse_args())
 
 # TODO: 1. Norm_x have upper/lower bound, but hard to measure the value
