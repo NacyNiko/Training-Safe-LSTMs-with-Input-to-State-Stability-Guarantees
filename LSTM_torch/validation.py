@@ -103,9 +103,9 @@ class Validator:
                             if j <= 2000:
                                 previous_y = batch[:, :, :self.output_size]
 
-                            # else:
-                            #     diff = (batch[:, :, :self.output_size] - previous_y) / batch[:, :, :self.output_size]
-                            #     batch[:, :, :self.output_size] = previous_y
+                            else:
+                                diff = (batch[:, :, :self.output_size] - previous_y) / batch[:, :, :self.output_size]
+                                batch[:, :, :self.output_size] = previous_y
 
                             with torch.no_grad():
                                 output, hidden = model(batch, hidden)
