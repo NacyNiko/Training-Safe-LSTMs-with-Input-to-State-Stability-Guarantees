@@ -92,16 +92,16 @@ def main():
             if train:
                 """ load training set: 4400 samples """
                 if noise:
-                    data_input = pd.read_csv("../data/train/train_input_noise.csv", header=None).iloc[:, 1]
-                    y_true = pd.read_csv("../data/train/train_output_noise.csv", header=None).iloc[:, 1]
+                    data_input = pd.read_csv("../data/train/train_input.csv", header=None).iloc[:, 1]
+                    y_true = pd.read_csv("../data/train/train_output.csv", header=None).iloc[:, 1]
                 else:
                     data_input = pd.read_csv("../data/train/train_input_clean.csv", header=None).iloc[:, 1]
                     y_true = pd.read_csv("../data/train/train_output_clean.csv", header=None).iloc[:, 1]
             else:
                 """ load validation set: 2250 samples """
                 if noise:
-                    data_input = pd.read_csv("../data/val/val_input_noise.csv", header=None).iloc[:, 1]
-                    y_true = pd.read_csv("../data/val/val_output_noise.csv", header=None).iloc[:, 1]
+                    data_input = pd.read_csv("../data/val/val_input.csv", header=None).iloc[:, 1]
+                    y_true = pd.read_csv("../data/val/val_output.csv", header=None).iloc[:, 1]
                 else:
                     data_input = pd.read_csv("../data/val/val_input_clean.csv", header=None).iloc[:, 1]
                     y_true = pd.read_csv("../data/val/val_output_clean.csv", header=None).iloc[:, 1]

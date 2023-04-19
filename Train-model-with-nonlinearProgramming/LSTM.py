@@ -111,15 +111,15 @@ def initial():
 def load_data(train=True, noise=True):
     if train:
         if noise:
-            data_input = pd.read_csv("../data/train/train_input_noise.csv", header=None)
-            data_output = pd.read_csv("../data/train/train_output_noise.csv", header=None)
+            data_input = pd.read_csv("../data/train/train_input.csv", header=None)
+            data_output = pd.read_csv("../data/train/train_output.csv", header=None)
         else:
             data_input = pd.read_csv("../data/train/train_input_clean.csv", header=None)
             data_output = pd.read_csv("../data/train/train_output_clean.csv", header=None)
     else:
         if noise:
-            data_input = pd.read_csv("../data/val/val_input_noise.csv", header=None)
-            data_output = pd.read_csv("../data/val/val_output_noise.csv", header=None)
+            data_input = pd.read_csv("../data/val/val_input.csv", header=None)
+            data_output = pd.read_csv("../data/val/val_output.csv", header=None)
         else:
             data_input = pd.read_csv("../data/val/val_input_clean.csv", header=None)
             data_output = pd.read_csv("../data/val/val_output_clean.csv", header=None)

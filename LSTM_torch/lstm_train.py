@@ -199,7 +199,7 @@ class IssLstmTrainer:
                     print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                     print("The loss changes no more")
                     break
-                elif (epoch + 1) % 10 == 0:
+                elif (epoch + 1) % 5 == 0:
                     print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                 loss_prev = loss.item()
                 # accumulative_reg_loss[0] += reg_loss[0].item()

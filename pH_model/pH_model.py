@@ -97,8 +97,8 @@ def main():
         np.random.seed(17)
         training_samples = 4400
         if noise_mulipiler:
-            save_path = [r'../data/pHdata/train/train_input_noise.csv',
-                         r'../data/pHdata/train/train_output_noise.csv']
+            save_path = [r'../data/pHdata/train/train_input.csv',
+                         r'../data/pHdata/train/train_output.csv']
         else:
             save_path = [r'../data/pHdata/train/train_input_clean.csv',
                          r'../data/pHdata/train/train_output_clean.csv']
@@ -106,8 +106,8 @@ def main():
         np.random.seed(27)
         training_samples = 2250
         if noise_mulipiler:
-            save_path = [r'../data/pHdata/val/val_input_noise.csv',
-                         r'../data/pHdata/val/val_output_noise.csv']
+            save_path = [r'../data/pHdata/val/val_input.csv',
+                         r'../data/pHdata/val/val_output.csv']
         else:
             save_path = [r'../data/pHdata/val/val_input_clean.csv',
                      r'../data/pHdata/val/val_output_clean.csv']
