@@ -33,17 +33,27 @@ parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of ga
 parser.add_argument('--threshold', default=torch.tensor([-0.0, -0.0]), help='value of threshold', type=torch.Tensor)
 
 if __name__ == '__main__':
-    grid_Search = False
+    grid_Search = True
     if grid_Search:
-        threshold_values = [x for x in range(0, 11)]
-        gamma_values = [x for x in range(0, 11)]
-        for threshold in threshold_values:
-            for gamma in gamma_values:
-                print('threshold:{}, gamma:{}'.format(threshold, gamma))
+        # threshold_values = [x for x in range(0, 11)]
+        # gamma_values = [x for x in range(0, 11)]
+        # for threshold in threshold_values:
+        #     for gamma in gamma_values:
+        # print('threshold:{}, gamma:{}'.format(threshold, gamma))
+        #
+        # args = parser.parse_args()
+        # args.threshold = torch.tensor([threshold, threshold])
+        # args.gamma = torch.tensor([gamma, gamma])
+
+        hidden_values = [120, 160, 200]
+        len_sequence_values = [10, 20, 30, 40]
+        for hs in hidden_values:
+            for ls in len_sequence_values:
+                print('hidden size:{}, seq length:{}'.format(hs, ls))
 
                 args = parser.parse_args()
-                args.threshold = torch.tensor([threshold, threshold])
-                args.gamma = torch.tensor([gamma, gamma])
+                args.hidden_size = hs
+                args.len_sequence = ls
 
                 lstm_train.main(args)
                 validation.main(args)
