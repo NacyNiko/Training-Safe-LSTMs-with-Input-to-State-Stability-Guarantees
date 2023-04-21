@@ -82,7 +82,8 @@ class IssLstmTrainer:
         Pid_NN = PidNN((self.input_size + self.output_size) * self.batch_size * self.seq_len)
 
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam([{'params': lstm_model.parameters()}, {'params': Pid_NN.parameters()}], lr=1e-3)
+        optimizer = torch.optim.Adam([{'params': lstm_model.parameters()}, {'params': Pid_NN.parameters()}]
+                                     , lr=1e-3, weight_decay=1e-3)
 
         lstm_model.to(device)
         Pid_NN.to(device)

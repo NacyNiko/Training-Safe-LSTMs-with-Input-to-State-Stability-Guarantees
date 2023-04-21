@@ -11,17 +11,17 @@ import validation
 
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
-parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'robot_inverse'], help='LSTM dataset')
-parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM', type=int)
+parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'coupled electric drives'], help='LSTM dataset')
+parser.add_argument('--hidden_size', default=120, help='hidden size of LSTM', type=int)
 
 parser.add_argument('--input_size', default=6, help='input size of LSTM', type=int)
 parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
-parser.add_argument('--layers', default=3, help='number of layers of LSTM', type=int)
-parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
-parser.add_argument('--epochs', default=50, help='maximum train epochs', type=int)
-parser.add_argument('--tolerance', default=1e-6, help='minimum tolerance of loss', type=float)
-parser.add_argument('--tol_stop', default=1e-10, help='minimum tolerance between 2 epochs', type=float)
-parser.add_argument('--len_sequence', default=10, help='length of input sequence to LSTM', type=int)
+parser.add_argument('--layers', default=2, help='number of layers of LSTM', type=int)
+parser.add_argument('--batch_size', default=16, help='train batch size', type=int)
+parser.add_argument('--epochs', default=800, help='maximum train epochs', type=int)
+parser.add_argument('--tolerance', default=-1e-3, help='minimum tolerance of loss', type=float)
+parser.add_argument('--tol_stop', default=-0.1, help='minimum tolerance between 2 epochs', type=float)
+parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM', type=int)
 
 
 parser.add_argument(
@@ -29,7 +29,7 @@ parser.add_argument(
 parser.add_argument('--dynamic_K', default=False, type=bool)
 parser.add_argument('--PID_coefficient', default=([3, 1], [0.2, 1], [0.5, 0.5]), type=tuple)
 parser.add_argument('--reg_methode', default='relu', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
-parser.add_argument('--gamma', default=torch.tensor([2., 2.]), help='value of gamma', type=torch.Tensor)
+parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of gamma', type=torch.Tensor)
 parser.add_argument('--threshold', default=torch.tensor([-0.0, -0.0]), help='value of threshold', type=torch.Tensor)
 
 if __name__ == '__main__':

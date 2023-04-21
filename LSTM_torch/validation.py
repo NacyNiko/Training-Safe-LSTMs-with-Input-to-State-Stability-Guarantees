@@ -100,7 +100,7 @@ class Validator:
 
                             # if j > 0:
                             #     diff_ = (batch[-1, :, :self.output_size] - output) / batch[-1, :, :self.output_size]
-                            if j <= 2000:
+                            if j <= 2 * self.seq_len:
                                 previous_y = batch[:, :, :self.output_size]
 
                             else:
@@ -108,21 +108,22 @@ class Validator:
                                 batch[:, :, :self.output_size] = previous_y
 
                             with torch.no_grad():
-                                output, hidden = model(batch, hidden)
+                                output, hidden = model(batch)
                                 temp = output * stat_y[1] + stat_y[0]
                                 predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
-                                if j >= 2000:
+                                if j >= 2 * self.seq_len:
                                     previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
                                     previous_y = previous_y[1:, :, :]
                             j += 1
 
                     i = 0
                     predictions = predictions.cpu()
-                    while i < self.output_size:
-                        fit_score = self.nrmse(data_y[:, i], predictions[1:, i].clone().detach())
+                    while i < self.output_size: # 2 * self.seq_len + 2000
+                        fit_score = self.nrmse(data_y[2 * self.seq_len:, i]
+                                               , predictions[1 + 2 * self.seq_len:, i].clone().detach())
                         f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
-                        ax[i].plot(predictions[1:, i], color='m', label='pred', alpha=0.8)
-                        ax[i].plot(data_y[:, i], color='c', label='real', linestyle='--', alpha=0.5)
+                        ax[i].plot(predictions[1 + 2 * self.seq_len:, i], color='m', label='pred', alpha=0.8)
+                        ax[i].plot(data_y[2 * self.seq_len:, i], color='c', label='real', linestyle='--', alpha=0.5)
                         ax[i].tick_params(labelsize=5)
                         ax[i].legend(loc='best')
                         ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
@@ -152,29 +153,28 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            if i <= 100:
+                            if i <= 2 * self.seq_len:
                                 previous_y = batch[:, :, :self.output_size]
 
                             else:
                                 batch[:, :, :self.output_size] = previous_y
 
                             with torch.no_grad():
-                                output, hidden = model(batch, hidden)
-                                temp = output * stat_y[1] + stat_y[0]
+                                output, hidden = model(batch)
                                 predictions.append(output * stat_y[1] + stat_y[0])
-                                if i >= 100:
+                                if i >= 2 * self.seq_len:
                                     previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
                                     previous_y = previous_y[1:, :, :]
                             i += 1
                         predictions = torch.tensor(predictions)
 
-                    fit_score = self.nrmse(data_y[5:, 0], predictions[5:].clone().detach())
+                    fit_score = self.nrmse(data_y[2 * self.seq_len:], predictions[2 * self.seq_len:].clone().detach())
                     self.nrmse_list.append(fit_score)
                     with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'wb') as f:
                         pickle.dump(self.nrmse_list, f)
                     fig.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
-                    ax[j].plot(data_y[5:, :], color='c', label='real', linestyle='--', alpha=0.5)
-                    ax[j].plot(predictions[5:], color='m', label='pred', alpha=0.8)
+                    ax[j].plot(data_y[2 * self.seq_len:], color='c', label='real', linestyle='--', alpha=0.5)
+                    ax[j].plot(predictions[2 * self.seq_len:], color='m', label='pred', alpha=0.8)
                     ax[j].tick_params(labelsize=5)
                     ax[j].legend(loc='best')
                     ax[j].set_title('NRMSE on {} set: {:.3f}'.format('train' if n else 'val', float(fit_score)))
