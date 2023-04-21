@@ -21,7 +21,7 @@ parser.add_argument('--batch_size', default=16, help='train batch size', type=in
 parser.add_argument('--epochs', default=800, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=-1e-3, help='minimum tolerance of loss', type=float)
 parser.add_argument('--tol_stop', default=-0.1, help='minimum tolerance between 2 epochs', type=float)
-parser.add_argument('--len_sequence', default=5, help='length of input sequence to LSTM', type=int)
+parser.add_argument('--len_sequence', default=30, help='length of input sequence to LSTM', type=int)
 
 
 parser.add_argument(
