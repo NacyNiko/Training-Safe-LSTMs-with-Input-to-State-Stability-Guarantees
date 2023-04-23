@@ -139,7 +139,6 @@ for if_con in [False, True]:
     W0 = initial()
     cons = ({'type': 'ineq', 'fun': constraint()})
 
-
     data_input, data_output = load_data()
 
     method_ = "SLSQP"
