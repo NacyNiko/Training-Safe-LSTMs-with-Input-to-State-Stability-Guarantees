@@ -46,7 +46,7 @@ if __name__ == '__main__':
         # args.gamma = torch.tensor([gamma, gamma])
 
         hidden_values = [200, 250]
-        len_sequence_values = [40, 50]
+        len_sequence_values = [20, 30]
         for hs in hidden_values:
             for ls in len_sequence_values:
                 print('hidden size:{}, seq length:{}'.format(hs, ls))
