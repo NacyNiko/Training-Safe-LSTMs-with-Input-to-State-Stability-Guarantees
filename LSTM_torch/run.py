@@ -11,17 +11,17 @@ import validation
 
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
-parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'coupled electric drives'], help='LSTM dataset')
-parser.add_argument('--hidden_size', default=160, help='hidden size of LSTM', type=int)
+parser.add_argument('--dataset', default='pHdata', choices=['pHdata', 'robot_forward', 'coupled electric drives'], help='LSTM dataset')
+parser.add_argument('--hidden_size', default=10, help='hidden size of LSTM', type=int)
 
-parser.add_argument('--input_size', default=6, help='input size of LSTM', type=int)
-parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
-parser.add_argument('--layers', default=2, help='number of layers of LSTM', type=int)
-parser.add_argument('--batch_size', default=128, help='train batch size', type=int)
-parser.add_argument('--epochs', default=1000, help='maximum train epochs', type=int)
+parser.add_argument('--input_size', default=1, help='input size of LSTM', type=int)
+parser.add_argument('--output_size', default=1, help='output size of output layer', type=int)
+parser.add_argument('--layers', default=1, help='number of layers of LSTM', type=int)
+parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
+parser.add_argument('--epochs', default=100, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=-1e-3, help='minimum tolerance of loss', type=float)
 parser.add_argument('--tol_stop', default=-0.1, help='minimum tolerance between 2 epochs', type=float)
-parser.add_argument('--len_sequence', default=30, help='length of input sequence to LSTM', type=int)
+parser.add_argument('--len_sequence', default=10, help='length of input sequence to LSTM', type=int)
 
 
 parser.add_argument(
@@ -35,25 +35,25 @@ parser.add_argument('--threshold', default=torch.tensor([-0.0, -0.0]), help='val
 if __name__ == '__main__':
     grid_Search = True
     if grid_Search:
-        # threshold_values = [x for x in range(0, 11)]
-        # gamma_values = [x for x in range(0, 11)]
-        # for threshold in threshold_values:
-        #     for gamma in gamma_values:
-        # print('threshold:{}, gamma:{}'.format(threshold, gamma))
-        #
-        # args = parser.parse_args()
-        # args.threshold = torch.tensor([threshold, threshold])
-        # args.gamma = torch.tensor([gamma, gamma])
-
-        hidden_values = [200, 250]
-        len_sequence_values = [20, 30]
-        for hs in hidden_values:
-            for ls in len_sequence_values:
-                print('hidden size:{}, seq length:{}'.format(hs, ls))
+        threshold_values = [x for x in range(0, 11)]
+        gamma_values = [x for x in range(0, 11)]
+        for threshold in threshold_values:
+            for gamma in gamma_values:
+                print('threshold:{}, gamma:{}'.format(threshold, gamma))
 
                 args = parser.parse_args()
-                args.hidden_size = hs
-                args.len_sequence = ls
+                args.threshold = torch.tensor([threshold, threshold])
+                args.gamma = torch.tensor([gamma, gamma])
+
+        # hidden_values = [200, 250]
+        # len_sequence_values = [20, 30]
+        # for hs in hidden_values:
+        #     for ls in len_sequence_values:
+        #         print('hidden size:{}, seq length:{}'.format(hs, ls))
+        #
+        #         args = parser.parse_args()
+        #         args.hidden_size = hs
+        #         args.len_sequence = ls
 
                 lstm_train.main(args)
                 validation.main(args)

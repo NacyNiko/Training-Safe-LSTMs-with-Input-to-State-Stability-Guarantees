@@ -28,18 +28,18 @@ class Validator:
         self.cur = args.curriculum_learning
         self.reg_mth = args.reg_methode
         self.dynamic_K = args.dynamic_K
+        self.gamma = args.gamma[0]
+        self.thd = args.threshold[0]
 
-        # self.l_r = np.array(sum(list([i] * len(args.gamma) for i in range(0, len(args.gamma))), []))
-        # self.l_thd = np.array(list(range(0, len(args.threshold))) * len(args.threshold))
-        if os.path.exists(r'./statistic/{}/constraints.pkl'.format(self.dataset)):
-            with open(r'./statistic/{}/constraints.pkl'.format(self.dataset), 'rb') as f:
-                self.l_c = pickle.load(f)
-        if os.path.exists(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset)):
-            with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'rb') as f:
-                self.nrmse_list = pickle.load(f)
+        if os.path.exists(r'./statistic/{}/record.csv'.format(self.dataset)):
+            self.record = pd.read_csv(r'./statistic/{}/record.csv'.format(self.dataset))
+        # if os.path.exists(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset)):
+        #     with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'rb') as f:
+        #         self.nrmse_list = pickle.load(f)
         else:
-            self.l_c = []
-            self.nrmse_list = []
+            self.record = pd.DataFrame(columns=['gamma', 'thd', 'c1', 'c2'])
+            # self.l_c = []
+            # self.nrmse_list = []
 
     def load_data(self):
         data_t = [r'../data/{}/train/train_input.csv'.format(self.dataset)
@@ -67,12 +67,11 @@ class Validator:
         return model
 
     def evaluate(self, model, path, data_t, data_v, save_plot=False):
-        # _, gamma, thd = name.split('tensor')
         c1, c2 = self.evaluate_constraint(model)
-
-        self.l_c.append((float(c1), float(c2)))
-        with open(r'./statistic/{}/constraints.pkl'.format(self.dataset), 'wb') as f:
-            pickle.dump(self.l_c, f)
+        dic = {'gamma': [float(self.gamma)], 'thd': [float(self.thd)], 'c1': [float(c1)], 'c2': [float(c2)]}
+        temp = pd.DataFrame(dic)
+        self.record = pd.concat([self.record, temp], axis=0)
+        self.record.to_csv(r'./statistic/{}/record.csv'.format(self.dataset))
 
         if save_plot:
             if self.output_size > 1:
@@ -169,6 +168,117 @@ class Validator:
                         predictions = torch.tensor(predictions)
 
                     fit_score = self.nrmse(data_y[2 * self.seq_len:], predictions[2 * self.seq_len:].clone().detach())
+
+                    fig.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
+                    ax[j].plot(data_y[2 * self.seq_len:], color='c', label='real', linestyle='--', alpha=0.5)
+                    ax[j].plot(predictions[2 * self.seq_len:], color='m', label='pred', alpha=0.8)
+                    ax[j].tick_params(labelsize=5)
+                    ax[j].legend(loc='best')
+                    ax[j].set_title('NRMSE on {} set: {:.3f}'.format('train' if n else 'val', float(fit_score)))
+                    j += 1
+
+                plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
+
+    def evaluate_piecewise(self, model, path, data_t, data_v, save_plot=False, horizon_window=1):
+        c1, c2 = self.evaluate_constraint(model)
+
+        self.l_c.append((float(c1), float(c2)))
+        with open(r'./statistic/{}/constraints.pkl'.format(self.dataset), 'wb') as f:
+            pickle.dump(self.l_c, f)
+
+        if save_plot:
+            if self.output_size > 1:
+                for n in [True, False]:
+                    hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
+                              , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
+                    f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
+
+                    data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
+                                                                 self.input_size, self.output_size,
+                                                                 train=n).creat_new_dataset(
+                        seq_len=self.seq_len)
+                    stat_x[0] = stat_x[0].to(self.device)
+                    stat_x[1] = stat_x[1].to(self.device)
+                    stat_y[0] = stat_y[0].to(self.device)
+                    stat_y[1] = stat_y[1].to(self.device)
+                    data_set = GetLoader(data_x, data_y, seq_len=self.seq_len, train=False)
+
+                    data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=True, num_workers=0)
+                    predictions = torch.empty([1, self.output_size]).to(self.device)
+                    with torch.no_grad():
+                        j = 0
+                        for batch, label in data_set:
+                            batch = batch.transpose(0, 1)
+                            batch = batch.to(torch.float32).to(self.device)
+
+                            if j <= 2 * self.seq_len:
+                                previous_y = batch[:, :, :self.output_size]
+
+                            else:
+                                diff = (batch[:, :, :self.output_size] - previous_y) / batch[:, :, :self.output_size]
+                                batch[:, :, :self.output_size] = previous_y
+
+                            with torch.no_grad():
+                                output, hidden = model(batch)
+                                temp = output * stat_y[1] + stat_y[0]
+                                predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
+                                if j >= 2 * self.seq_len:
+                                    previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
+                                    previous_y = previous_y[1:, :, :]
+                            j += 1
+
+                    i = 0
+                    predictions = predictions.cpu()
+                    while i < self.output_size:  # 2 * self.seq_len + 2000
+                        fit_score = self.nrmse(data_y[2 * self.seq_len:, i]
+                                               , predictions[1 + 2 * self.seq_len:, i].clone().detach())
+                        f.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
+                        ax[i].plot(predictions[1 + 2 * self.seq_len:, i], color='m', label='pred', alpha=0.8)
+                        ax[i].plot(data_y[2 * self.seq_len:, i], color='c', label='real', linestyle='--', alpha=0.5)
+                        ax[i].tick_params(labelsize=5)
+                        ax[i].legend(loc='best')
+                        ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
+                        i += 1
+                    plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight',
+                                dpi=500)
+            else:
+                fig, ax = plt.subplots(2, 1)
+                j = 0
+                for n in [True, False]:
+                    data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
+                                                                 self.input_size, self.output_size,
+                                                                 train=n).creat_new_dataset(seq_len=self.seq_len)
+                    stat_x[0] = stat_x[0].to(self.device)
+                    stat_x[1] = stat_x[1].to(self.device)
+                    stat_y[0] = stat_y[0].to(self.device)
+                    stat_y[1] = stat_y[1].to(self.device)
+                    data_set = GetLoader(data_x, data_y, seq_len=self.seq_len, train=False)
+
+                    data_set = DataLoader(data_set, batch_size=1, shuffle=False, drop_last=False, num_workers=0)
+                    predictions = []
+
+                    with torch.no_grad():
+                        i = 0
+                        for batch, label in data_set:
+                            batch = batch.transpose(0, 1)
+                            batch = batch.to(torch.float32).to(self.device)
+
+                            if i <= 2 * self.seq_len:
+                                previous_y = batch[:, :, :self.output_size]
+
+                            else:
+                                batch[:, :, :self.output_size] = previous_y
+
+                            with torch.no_grad():
+                                output, hidden = model(batch)
+                                predictions.append(output * stat_y[1] + stat_y[0])
+                                if i >= 2 * self.seq_len:
+                                    previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
+                                    previous_y = previous_y[1:, :, :]
+                            i += 1
+                        predictions = torch.tensor(predictions)
+
+                    fit_score = self.nrmse(data_y[2 * self.seq_len:], predictions[2 * self.seq_len:].clone().detach())
                     self.nrmse_list.append(fit_score)
                     with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'wb') as f:
                         pickle.dump(self.nrmse_list, f)
@@ -180,7 +290,8 @@ class Validator:
                     ax[j].set_title('NRMSE on {} set: {:.3f}'.format('train' if n else 'val', float(fit_score)))
                     j += 1
 
-                plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
+                plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight',
+                            dpi=500)
 
     def evaluate_constraint(self, model):
         parameters = model.lstm.parameters()

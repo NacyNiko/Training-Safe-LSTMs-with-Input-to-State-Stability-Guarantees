@@ -87,10 +87,7 @@ class DataCreater:
 
         """ create new data set """
         feature = torch.cat([train_y[:-1, :], train_x[:-1, :]], dim=1)
-        # feature = torch.cat([train_y[:-1].unsqueeze(1), train_x[:-1, :]], dim=1)
-        # feature = torch.cat([train_y[:-1].unsqueeze(1), train_x[:-1].unsqueeze(1)], dim=1)
         labels = labels[seq_len:, :]
-        # labels = labels[seq_len:]
         return feature, labels, [self.mean_x, self.std_x], [self.mean_y, self.std_y]
 
 
@@ -104,12 +101,10 @@ class GetLoader(torch.utils.data.Dataset):
     def __getitem__(self, index):
         data = self.data[index:index + self.seq_len, :]
         labels = self.label[index, :]
-        # labels = self.label[index]
         return data, labels
 
     def __len__(self):
         return len(self.label[:, 0])
-        # return len(self.label)
 
 class PlotGraph:
     def __init__(self, dataset):
