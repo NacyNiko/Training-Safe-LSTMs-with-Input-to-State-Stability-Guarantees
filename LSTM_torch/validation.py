@@ -31,15 +31,11 @@ class Validator:
         self.gamma = args.gamma[0]
         self.thd = args.threshold[0]
 
-        if os.path.exists(r'./statistic/{}/record.csv'.format(self.dataset)):
-            self.record = pd.read_csv(r'./statistic/{}/record.csv'.format(self.dataset))
-        # if os.path.exists(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset)):
-        #     with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'rb') as f:
-        #         self.nrmse_list = pickle.load(f)
-        else:
-            self.record = pd.DataFrame(columns=['gamma', 'thd', 'c1', 'c2'])
-            # self.l_c = []
-            # self.nrmse_list = []
+        # if os.path.exists(r'./statistic/{}/record.csv'.format(self.dataset)):
+        #     self.record = pd.read_csv(r'./statistic/{}/record.csv'.format(self.dataset))
+        #
+        # else:
+        #     self.record = pd.DataFrame({'gamma': [0], 'thd': [0], 'c1': [0], 'c2': [0]})
 
     def load_data(self):
         data_t = [r'../data/{}/train/train_input.csv'.format(self.dataset)
@@ -68,10 +64,16 @@ class Validator:
 
     def evaluate(self, model, path, data_t, data_v, save_plot=False):
         c1, c2 = self.evaluate_constraint(model)
-        dic = {'gamma': [float(self.gamma)], 'thd': [float(self.thd)], 'c1': [float(c1)], 'c2': [float(c2)]}
-        temp = pd.DataFrame(dic)
-        self.record = pd.concat([self.record, temp], axis=0)
-        self.record.to_csv(r'./statistic/{}/record.csv'.format(self.dataset))
+        # g, t = path.split('_')[-3][-2], path.split('_')[-1][-6]
+        # if len(path.split('_')[-3]) > 5:
+        #     g = path.split('_')[-3][-3:-1]
+        # if len(path.split('_')[-1]) > 9:
+        #     t = path.split('_')[-1][-7:-5]
+        #
+        # dic = {'gamma': [float(g)], 'thd': [float(t)], 'c1': [float(c1)], 'c2': [float(c2)]}
+        # temp = pd.DataFrame(dic)
+        # self.record = pd.concat([self.record, temp], axis=0)
+        # self.record.to_csv(r'./statistic/{}/record.csv'.format(self.dataset))
 
         if save_plot:
             if self.output_size > 1:
@@ -181,11 +183,7 @@ class Validator:
 
     def evaluate_piecewise(self, model, path, data_t, data_v, save_plot=False, horizon_window=1):
         c1, c2 = self.evaluate_constraint(model)
-
-        self.l_c.append((float(c1), float(c2)))
-        with open(r'./statistic/{}/constraints.pkl'.format(self.dataset), 'wb') as f:
-            pickle.dump(self.l_c, f)
-
+        pre_batches = []
         if save_plot:
             if self.output_size > 1:
                 for n in [True, False]:
@@ -211,21 +209,39 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            if j <= 2 * self.seq_len:
-                                previous_y = batch[:, :, :self.output_size]
-
+                            if horizon_window == 1:
+                                # warm up
+                                if j <= 2 * self.seq_len:
+                                    previous_y = batch[:, :, :self.output_size]
+                                with torch.no_grad():
+                                    output, hidden = model(batch)
+                                    temp = output * stat_y[1] + stat_y[0]
+                                    predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
+                                    if j >= 2 * self.seq_len:
+                                        previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
+                                        previous_y = previous_y[1:, :, :]
                             else:
-                                diff = (batch[:, :, :self.output_size] - previous_y) / batch[:, :, :self.output_size]
-                                batch[:, :, :self.output_size] = previous_y
+                                if len(pre_batches) < 2 * self.seq_len:
+                                    pre_batches.append(zip(batch, label))
+                                else:
+                                    pre_batches.append(zip(batch, label))
+                                    pre_batches.pop(0)
 
-                            with torch.no_grad():
-                                output, hidden = model(batch)
-                                temp = output * stat_y[1] + stat_y[0]
-                                predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
-                                if j >= 2 * self.seq_len:
+                                if j % horizon_window == 0:
+                                    # warm up
+                                    for w_batch, w_label in pre_batches:
+                                        previous_y = w_batch[:, :, :self.output_size]
+                                        with torch.no_grad():
+                                            output, hidden = model(w_batch)
+                                else:
+                                    # rebuild batch
+                                    batch[:, :, :self.output_size] = previous_y
+                                    output, hidden = model(batch)
+                                    temp = output * stat_y[1] + stat_y[0]
+                                    predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
                                     previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
                                     previous_y = previous_y[1:, :, :]
-                            j += 1
+                                j += 1
 
                     i = 0
                     predictions = predictions.cpu()
@@ -239,7 +255,8 @@ class Validator:
                         ax[i].legend(loc='best')
                         ax[i].set_title('NRMSE on {} set: {:.3f}'.format(n, fit_score), fontsize=8)
                         i += 1
-                    plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight',
+                    plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], horizon_window, 'train' if n else 'val'),
+                                bbox_inches='tight',
                                 dpi=500)
             else:
                 fig, ax = plt.subplots(2, 1)
@@ -263,25 +280,43 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            if i <= 2 * self.seq_len:
-                                previous_y = batch[:, :, :self.output_size]
-
+                            if horizon_window == 1:
+                                # warm up
+                                if i <= 2 * self.seq_len:
+                                    previous_y = batch[:, :, :self.output_size]
+                                with torch.no_grad():
+                                    output, hidden = model(batch)
+                                    temp = output * stat_y[1] + stat_y[0]
+                                    predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
+                                    if i >= 2 * self.seq_len:
+                                        previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
+                                        previous_y = previous_y[1:, :, :]
                             else:
-                                batch[:, :, :self.output_size] = previous_y
+                                if len(pre_batches) < 2 * self.seq_len:
+                                    pre_batches.append(zip(batch, label))
+                                else:
+                                    pre_batches.append(zip(batch, label))
+                                    pre_batches.pop(0)
 
-                            with torch.no_grad():
-                                output, hidden = model(batch)
-                                predictions.append(output * stat_y[1] + stat_y[0])
-                                if i >= 2 * self.seq_len:
+                                if j % horizon_window == 0:
+                                    # warm up
+                                    for w_batch, w_label in pre_batches:
+                                        previous_y = w_batch[:, :, :self.output_size]
+                                        with torch.no_grad():
+                                            output, hidden = model(w_batch)
+                                else:
+                                    # rebuild batch
+                                    batch[:, :, :self.output_size] = previous_y
+                                    output, hidden = model(batch)
+                                    temp = output * stat_y[1] + stat_y[0]
+                                    predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
                                     previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
                                     previous_y = previous_y[1:, :, :]
                             i += 1
                         predictions = torch.tensor(predictions)
 
                     fit_score = self.nrmse(data_y[2 * self.seq_len:], predictions[2 * self.seq_len:].clone().detach())
-                    self.nrmse_list.append(fit_score)
-                    with open(r'./statistic/{}/nrmse_list.pkl'.format(self.dataset), 'wb') as f:
-                        pickle.dump(self.nrmse_list, f)
+
                     fig.suptitle('Model: ' + path[18:-4] + 'c1:{} c2:{} {}'.format(c1, c2, self.dynamic_K))
                     ax[j].plot(data_y[2 * self.seq_len:], color='c', label='real', linestyle='--', alpha=0.5)
                     ax[j].plot(predictions[2 * self.seq_len:], color='m', label='pred', alpha=0.8)
@@ -290,7 +325,8 @@ class Validator:
                     ax[j].set_title('NRMSE on {} set: {:.3f}'.format('train' if n else 'val', float(fit_score)))
                     j += 1
 
-                plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight',
+                plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], horizon_window, 'train' if n else 'val'),
+                            bbox_inches='tight',
                             dpi=500)
 
     def evaluate_constraint(self, model):
