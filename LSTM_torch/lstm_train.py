@@ -4,6 +4,7 @@
 # @File : lstm_train.py
 import copy
 import os.path
+import pickle
 
 import pandas as pd
 from networks import LstmRNN, PidNN
@@ -212,8 +213,12 @@ class IssLstmTrainer:
 
         """ save model """
         self.save_model(self.reg_methode, self.curriculum_learning, lstm_model, [gamma1, gamma2], thd=self.threshold)
-        weight_save.to_csv('./statistic/{}/weights_{}_{}.csv'.format(self.dataset, self.reg_methode,
-                                                                             self.curriculum_learning), index=False)
+        # weight_save.to_csv('./statistic/{}/weights_{}_{}.csv'.format(self.dataset, self.reg_methode,
+        #                                                                      self.curriculum_learning), index=False)
+        with open('./statistic/{}/weights_{}_{}.pkl'.format(self.dataset, self.reg_methode,
+                                                                             self.curriculum_learning), 'wb') as f:
+            pickle.dump(weight_save, f)
+
         if self.dynamic_k:
             k_list.to_csv('./statistic/{}/K_{}_{}.csv'.format(self.dataset, self.reg_methode,
                                                                              self.curriculum_learning), index=False)
