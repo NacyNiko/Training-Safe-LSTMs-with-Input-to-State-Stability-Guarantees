@@ -36,8 +36,8 @@ class PidNN(nn.Module):
         x = self.linear1(x)
         x = torch.tanh(x)
         x = self.linear2(x)
-        x[:2] = 10 * (1 + torch.tanh(x[:2]))
-        x[2:] = 0.5 * (1 + torch.tanh(x[2:]))
+        # x[:2] = 10 * (1 + torch.tanh(x[:2]))
+        # x[2:] = 0.5 * (1 + torch.tanh(x[2:]))
         out = x.reshape(3, 2)
         return out
 

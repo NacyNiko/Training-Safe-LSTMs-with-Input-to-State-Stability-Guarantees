@@ -165,10 +165,6 @@ class IssLstmTrainer:
                     response = response.float().to(device)
                     steady_error = steady_error.float().to(device)
 
-                    # print('overshoot:', overshoot)
-                    # print('response:', response)
-                    # print('steady error', steady_error)
-
                     reg_k_loss = torch.dot(overshoot, dynamic_k[0, :]) + torch.dot(overshoot, 1 / dynamic_k[1, :]) + \
                            torch.dot(overshoot, 1 / dynamic_k[2, :]) + \
                            torch.dot(response, 1 / dynamic_k[0, :]) + torch.dot(steady_error, dynamic_k[1, :]) + \
