@@ -17,7 +17,7 @@ parser.add_argument('--hidden_size', default=160, help='hidden size of LSTM', ty
 parser.add_argument('--input_size', default=6, help='input size of LSTM', type=int)
 parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
 parser.add_argument('--layers', default=2, help='number of layers of LSTM', type=int)
-parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
+parser.add_argument('--batch_size', default=128, help='train batch size', type=int)
 parser.add_argument('--epochs', default=1000, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=-1e-3, help='minimum tolerance of loss', type=float)
 parser.add_argument('--tol_stop', default=-0.1, help='minimum tolerance between 2 epochs', type=float)
