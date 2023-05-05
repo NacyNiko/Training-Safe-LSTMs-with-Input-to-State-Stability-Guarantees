@@ -209,17 +209,16 @@ class IssLstmTrainer:
 
         """ save model """
         self.save_model(self.reg_methode, self.curriculum_learning, lstm_model, [gamma1, gamma2], thd=self.threshold)
-        # weight_save.to_csv('./statistic/{}/weights_{}_{}.csv'.format(self.dataset, self.reg_methode,
-        #                                                                      self.curriculum_learning), index=False)
-        with open('./statistic/{}/weights_{}_{}.pkl'.format(self.dataset, self.reg_methode,
-                                                                             self.curriculum_learning), 'wb') as f:
+
+        folder_path = f'./statistic/{self.dataset}/hs_{self.hidden_size}_ls_{self.num_layer}_sl_{self.seq_len}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        with open(folder_path + f'/weights_{self.reg_methode}_{self.curriculum_learning}.pkl', 'wb') as f:
             pickle.dump(weight_save, f)
 
         if self.dynamic_k:
-            k_list.to_csv('./statistic/{}/K_{}_{}.csv'.format(self.dataset, self.reg_methode,
-                                                                             self.curriculum_learning), index=False)
-        # pd.DataFrame(results.cpu().detach()).to_csv('./statistic/{}/Test_{}_{}.csv'.format(self.dataset, self.reg_methode,
-        #                                                                      self.curriculum_learning), index=False)
+            k_list.to_csv(folder_path + f'/K_{self.reg_methode}_{self.curriculum_learning}.csv', index=False)
 
     def save_model(self, methode, curriculum_learning, model, gamma, thd):
         """ model save path """
@@ -231,9 +230,6 @@ class IssLstmTrainer:
         if not os.path.exists('models/{}/curriculum_{}/{}'.format(self.dataset, curriculum_learning, methode)):
             os.makedirs('models/{}/curriculum_{}/{}'.format(self.dataset, curriculum_learning, methode))
         torch.save(model.state_dict(), model_save_path)
-# TODO: L^* = argmax_{x1, x2} / L(x_1, x_2)
-# TODO: https://arxiv.org/abs/1412.6572
-
 
 def main(args):
     trainer = IssLstmTrainer(args)
@@ -243,26 +239,3 @@ def main(args):
 # if __name__ == '__main__':
 #     main(parser.parse_args())
 
-
-
-
-"""
-1. self.old_model 初始化为之前训练的模型，满足log barrier ！= inf
-2. 实例化 lstm_model
-3. BLS:
-    3.1: 验证lstm_model 的Log barrier是否 = inf
-        yes：3.1.1: 两个模型参数flatten
-             3.1.2: 更新模型
-             3.1.3: write_flatten_params
-             3.1.4: 验证log barrier
-        no: self.old_model = copy.deepcopy(lstm_model) 
-
-"""
-"""
-Next Step:
-visualize the loss of constraints over epochs.
- - compare the differences of different methods.
- - curriculum learning strategy.
- - use different strategy to each constraints.
-
-"""

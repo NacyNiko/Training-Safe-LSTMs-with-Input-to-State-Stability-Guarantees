@@ -140,7 +140,6 @@ class PlotGraph:
         plt.savefig('./statistic/{}/{} K.fig'.format(self.data, self.data))
 
 
-########### new ###############
 class SaveLoss:
     def __init__(self, target: torch.tensor, window: int):
         self.loss = torch.tensor([[0, 0]])

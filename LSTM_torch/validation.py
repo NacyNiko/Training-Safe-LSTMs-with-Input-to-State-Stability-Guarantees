@@ -222,25 +222,31 @@ class Validator:
                                         previous_y = previous_y[1:, :, :]
                             else:
                                 if len(pre_batches) < 2 * self.seq_len:
-                                    pre_batches.append(zip(batch, label))
+                                    pre_batches.append((batch, label))
                                 else:
-                                    pre_batches.append(zip(batch, label))
+                                    pre_batches.append((batch, label))
                                     pre_batches.pop(0)
 
-                                if j % horizon_window == 0:
+                                # initial warm up
+                                if j <= 2 * self.seq_len:
+                                    previous_y = batch[:, :, :self.output_size]
+                                    with torch.no_grad():
+                                        _, _ = model(batch)
+
+                                if j % horizon_window == 0 and j > 2 * self.seq_len:
                                     # warm up
                                     for w_batch, w_label in pre_batches:
                                         previous_y = w_batch[:, :, :self.output_size]
                                         with torch.no_grad():
                                             output, hidden = model(w_batch)
-                                else:
-                                    # rebuild batch
-                                    batch[:, :, :self.output_size] = previous_y
-                                    output, hidden = model(batch)
-                                    temp = output * stat_y[1] + stat_y[0]
-                                    predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
-                                    previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
-                                    previous_y = previous_y[1:, :, :]
+
+                                # rebuild batch
+                                batch[:, :, :self.output_size] = previous_y
+                                output, hidden = model(batch)
+                                temp = output * stat_y[1] + stat_y[0]
+                                predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
+                                previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
+                                previous_y = previous_y[1:, :, :]
                                 j += 1
 
                     i = 0
@@ -287,31 +293,36 @@ class Validator:
                                 with torch.no_grad():
                                     output, hidden = model(batch)
                                     temp = output * stat_y[1] + stat_y[0]
-                                    predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
+                                    predictions.append(output * stat_y[1] + stat_y[0])
                                     if i >= 2 * self.seq_len:
                                         previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
                                         previous_y = previous_y[1:, :, :]
                             else:
                                 if len(pre_batches) < 2 * self.seq_len:
-                                    pre_batches.append(zip(batch, label))
+                                    pre_batches.append((batch, label))
                                 else:
-                                    pre_batches.append(zip(batch, label))
+                                    pre_batches.append((batch, label))
                                     pre_batches.pop(0)
 
-                                if j % horizon_window == 0:
+                                # initial warm up
+                                if i <= 2 * self.seq_len:
+                                    previous_y = batch[:, :, :self.output_size]
+                                    with torch.no_grad():
+                                        _, _ = model(batch)
+
+                                if i % horizon_window == 0 and i > 2 * self.seq_len:
                                     # warm up
                                     for w_batch, w_label in pre_batches:
                                         previous_y = w_batch[:, :, :self.output_size]
                                         with torch.no_grad():
                                             output, hidden = model(w_batch)
-                                else:
-                                    # rebuild batch
-                                    batch[:, :, :self.output_size] = previous_y
-                                    output, hidden = model(batch)
-                                    temp = output * stat_y[1] + stat_y[0]
-                                    predictions = torch.cat([predictions, output * stat_y[1] + stat_y[0]], dim=0)
-                                    previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
-                                    previous_y = previous_y[1:, :, :]
+
+                                # rebuild batch
+                                batch[:, :, :self.output_size] = previous_y
+                                output, hidden = model(batch)
+                                predictions.append(output * stat_y[1] + stat_y[0])
+                                previous_y = torch.cat([previous_y, output.unsqueeze(0)], dim=0)
+                                previous_y = previous_y[1:, :, :]
                             i += 1
                         predictions = torch.tensor(predictions)
 
@@ -335,7 +346,7 @@ class Validator:
         return c[0], c[1]
 
 
-def main(args, if_filter=True, plt3D=False):   # if_filter: ignore whether gamma=0 or threshold=0
+def main(args, if_filter=True, plt3D=False, piecewise=False):   # if_filter: ignore whether gamma=0 or threshold=0
     validator = Validator(args, device='cuda')
     # validator = Validator([*range(11)], [*range(11)], device='cuda')
     data_train, data_val = validator.load_data()
@@ -353,7 +364,10 @@ def main(args, if_filter=True, plt3D=False):   # if_filter: ignore whether gamma
         if not (temp1 in save_jpgs or temp2 in save_jpgs):
             path = file + model
             lstmmodel = validator.load_model(lstmmodel, path)
-            validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
+            if not piecewise:
+                validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
+            else:
+                validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, save_plot=True, horizon_window=45)
 
     # if if_filter:
     #     idx = validator.l_r * validator.l_thd
@@ -389,6 +403,3 @@ def main(args, if_filter=True, plt3D=False):   # if_filter: ignore whether gamma
     # plt.show()
     print('-------------Finish---------------------')
 
-
-# if __name__ == '__main__':
-#     main(dataset, plt3D=False)
