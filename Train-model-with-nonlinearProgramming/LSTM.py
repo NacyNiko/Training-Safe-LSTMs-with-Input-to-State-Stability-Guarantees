@@ -163,7 +163,7 @@ for if_con in [False, True]:
     numInput = 1
     numOutput = 1
     numHiddenUnits = 5
-    tol = 10000000
+    tol = 10-3
 
     """ training """
     W0 = initial()
