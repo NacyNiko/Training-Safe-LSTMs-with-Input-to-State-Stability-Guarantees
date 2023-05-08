@@ -57,7 +57,7 @@ if __name__ == '__main__':
                 lstm_train.main(args)
                 validation.main(args, piecewise=True)
     else:
-        # lstm_train.main(parser.parse_args())
+        lstm_train.main(parser.parse_args())
         validation.main(parser.parse_args(), piecewise=True)
 
 # TODO: 1. Norm_x have upper/lower bound, but hard to measure the value
