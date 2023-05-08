@@ -7,7 +7,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import copy
 
 """ define sigmoid """
 def sigmoid(x):
@@ -57,13 +57,12 @@ def validate(W, data_input):
            -1 + (1 + sigmoid(np.linalg.norm(np.hstack((W_o, U_o, b_o)), np.inf))) *
            sigmoid(np.linalg.norm(np.hstack((W_i, U_i, b_i)), np.inf)) * np.linalg.norm(U_c, 1)]
 
-    for i in range(len(data_input)):
+    for i in range(data_input.shape[0]):
         C = sigmoid(np.dot(W_f, pd.DataFrame(u.iloc[i, :])) + np.dot(U_f, X) + b_f) * C + \
             sigmoid(np.dot(W_i, pd.DataFrame(u.iloc[i, :])) + np.dot(U_i, X) + b_i) * \
             tanh(np.dot(W_c, pd.DataFrame(u.iloc[i, :])) + np.dot(U_c, X) + b_c)
         X = sigmoid(np.dot(W_o, pd.DataFrame(u.iloc[i, :])) + np.dot(U_o, X) + b_o) * tanh(C)
         y_pred = np.dot(W_y.T, X) + b_y
-        y_pred = y_pred * y_std + y_mean
         y_val.append(y_pred.squeeze())
     return y_val, con
 
@@ -78,53 +77,74 @@ def nrmse(y, y_hat):  # normalization to y
 
 """ load trained model """
 models = os.listdir('./models')
+x_mean = pd.read_csv("../data/pHdata/train/train_input.csv", header=None).iloc[:, 1].mean(axis=0)
+x_std = pd.read_csv("../data/pHdata/train/train_input.csv", header=None).iloc[:, 1].std(axis=0)
+y_mean = pd.read_csv("../data/pHdata/train/train_output.csv", header=None).iloc[:, 1].mean(axis=0)
+y_std = pd.read_csv("../data/pHdata/train/train_output.csv", header=None).iloc[:, 1].std(axis=0)
 for file in models:
-    model_path = './models/' + file
-    model_file = open(model_path, "rb")
-    model = pickle.load(model_file)
-    W = model.x
+    if file[:-4] + '.jpg' not in os.listdir('./result/python/fig'):
+        model_path = './models/' + file
+        model_file = open(model_path, "rb")
+        model = pickle.load(model_file)
+        W = model.x
 
-    f, ax = plt.subplots(2, 1)
-    i = 0
-    x_mean = pd.read_csv("../data/pHdata/train/train_input.csv", header=None).iloc[:, 1].mean(axis=0)
-    x_std = pd.read_csv("../data/pHdata/train/train_input.csv", header=None).iloc[:, 1].std(axis=0)
-    y_mean = pd.read_csv("../data/pHdata/train/train_output.csv", header=None).iloc[:, 1].mean(axis=0)
-    y_std = pd.read_csv("../data/pHdata/train/train_output.csv", header=None).iloc[:, 1].std(axis=0)
-    """ train or validation """
-    for train in [True, False]:
-        noise = True
-        if train:
-            """ load training set: 4400 samples """
-            if noise:
-                data_input = pd.read_csv("../data/pHdata/train/train_input.csv", header=None).iloc[:, 1]
-                y_true = pd.read_csv("../data/pHdata/train/train_output.csv", header=None).iloc[:, 1]
-            else:
-                data_input = pd.read_csv("../data/pHdata/train/train_input_clean.csv", header=None).iloc[:, 1]
-                y_true = pd.read_csv("../data/pHdata/train/train_output_clean.csv", header=None).iloc[:, 1]
-        else:
-            """ load validation set: 2250 samples """
-            if noise:
-                data_input = pd.read_csv("../data/pHdata/val/val_input.csv", header=None).iloc[:, 1]
-                y_true = pd.read_csv("../data/pHdata/val/val_output.csv", header=None).iloc[:, 1]
-            else:
-                data_input = pd.read_csv("../data/pHdata/val/val_input_clean.csv", header=None).iloc[:, 1]
-                y_true = pd.read_csv("../data/pHdata/val/val_output_clean.csv", header=None).iloc[:, 1]
-        data_input = (data_input - x_mean) / x_std
+        f, ax = plt.subplots(2, 1)
+        i = 0
 
-        """ calculate y_val """
-        y_val, cons = validate(W, data_input)
-        y_val = pd.Series(y_val)
-        y_val = y_val * y_std + y_mean
-        """ plot """
-        nrmse_score = nrmse(y_val, y_true)
-        f.suptitle('c1:{} c2:{}'.format(cons[0], cons[1]))
-        ax[i].plot(y_val, color='m', label='pred', alpha=0.8)
-        ax[i].plot(y_true, color='c', label='real', linestyle='--', alpha=0.5)
-        ax[i].tick_params(labelsize=5)
-        ax[i].legend(loc='best')
-        ax[i].set_title('NRMSE on {} set: {:.3f}'.format('train' if train else 'val', nrmse_score), fontsize=8)
-        i += 1
-    plt.savefig('./result/python/fig/{}.jpg'.format(file[:-4]), bbox_inches='tight', dpi=500)
+        """ train or validation """
+        for train in [True, False]:
+            noise = True
+            # if train:
+            #     """ load training set: 4400 samples """
+            #     if noise:
+            #         data_input = pd.read_csv("../data/pHdata/train/train_input.csv", header=None).iloc[:, 1]
+            #         y_true = pd.read_csv("../data/pHdata/train/train_output.csv", header=None).iloc[:, 1]
+            #     else:
+            #         data_input = pd.read_csv("../data/pHdata/train/train_input_clean.csv", header=None).iloc[:, 1]
+            #         y_true = pd.read_csv("../data/pHdata/train/train_output_clean.csv", header=None).iloc[:, 1]
+            # else:
+            #     """ load validation set: 2250 samples """
+            #     if noise:
+            #         data_input = pd.read_csv("../data/pHdata/val/val_input.csv", header=None).iloc[:, 1]
+            #         y_true = pd.read_csv("../data/pHdata/val/val_output.csv", header=None).iloc[:, 1]
+            #     else:
+            #         data_input = pd.read_csv("../data/pHdata/val/val_input_clean.csv", header=None).iloc[:, 1]
+            #         y_true = pd.read_csv("../data/pHdata/val/val_output_clean.csv", header=None).iloc[:, 1]
+            # data_input = (data_input - x_mean) / x_std
+            if train:
+                train_x = pd.read_csv("../data/pHdata/train/train_input.csv", header=None).iloc[:, 1]
+                train_x = (train_x - x_mean) / x_std
+
+                train_y = pd.read_csv("../data/pHdata/train/train_output.csv", header=None).iloc[:, 1]
+                labels = copy.deepcopy(train_y)[1:]
+                labels = labels.reset_index(drop=True)
+                train_y = (train_y - y_mean) / y_std
+
+                feature = pd.concat([train_y[:-1], train_x[:-1]], axis=1)
+            else:
+                train_x = pd.read_csv("../data/pHdata/val/val_input.csv", header=None).iloc[:, 1]
+                train_x = (train_x - x_mean) / x_std
+
+                train_y = pd.read_csv("../data/pHdata/val/val_output.csv", header=None).iloc[:, 1]
+                labels = copy.deepcopy(train_y)[1:]
+                labels = labels.reset_index(drop=True)
+                train_y = (train_y - y_mean) / y_std
+
+                feature = pd.concat([train_y[:-1], train_x[:-1]], axis=1)
+            """ calculate y_val """
+            y_val, cons = validate(W, feature)
+            y_val = pd.Series(y_val)
+            y_val = y_val * y_std + y_mean
+            """ plot """
+            nrmse_score = nrmse(y_val, labels)
+            f.suptitle('c1:{} c2:{}'.format(cons[0], cons[1]))
+            ax[i].plot(y_val, color='m', label='pred', alpha=0.8)
+            ax[i].plot(labels, color='c', label='real', linestyle='--', alpha=0.5)
+            ax[i].tick_params(labelsize=5)
+            ax[i].legend(loc='best')
+            ax[i].set_title('NRMSE on {} set: {:.3f}'.format('train' if train else 'val', nrmse_score), fontsize=8)
+            i += 1
+        plt.savefig('./result/python/fig/{}.jpg'.format(file[:-4]), bbox_inches='tight', dpi=500)
             # plt.figure()
             # plt.title('constraints: c1:{}, c2:{}'.format(cons[0], cons[1]))
             # plt.plot([*range(len(data_input) - 100)], y_val[100:], color='b', label='Prediction')

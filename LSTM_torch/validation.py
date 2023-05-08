@@ -31,17 +31,19 @@ class Validator:
         self.gamma = args.gamma[0]
         self.thd = args.threshold[0]
 
-        # if os.path.exists(r'./statistic/{}/record.csv'.format(self.dataset)):
-        #     self.record = pd.read_csv(r'./statistic/{}/record.csv'.format(self.dataset))
-        #
-        # else:
-        #     self.record = pd.DataFrame({'gamma': [0], 'thd': [0], 'c1': [0], 'c2': [0]})
+        if os.path.exists(r'./statistic/{}/record.csv'.format(self.dataset)):
+            self.record = pd.read_csv(r'./statistic/{}/record.csv'.format(self.dataset))
+
+        else:
+            self.record = pd.DataFrame({'gamma': [0], 'thd': [0], 'c1': [0], 'c2': [0]})
 
     def load_data(self):
         data_t = [r'../data/{}/train/train_input.csv'.format(self.dataset)
                        , r'../data/{}/train/train_output.csv'.format(self.dataset)]
-        data_v = [r'../data/{}/val/val_input.csv'.format(self.dataset)
-                       , r'../data/{}/val/val_output.csv'.format(self.dataset)]
+        # data_v = [r'../data/{}/val/val_input.csv'.format(self.dataset)
+        #                , r'../data/{}/val/val_output.csv'.format(self.dataset)]
+        data_v = [r'../data/{}/test/test_input.csv'.format(self.dataset)
+                       , r'../data/{}/test/test_output.csv'.format(self.dataset)]
         return data_t, data_v
 
     @staticmethod
@@ -80,6 +82,7 @@ class Validator:
                 for n in [True, False]:
                     hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
                               , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
+                    plt.close()
                     f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
 
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
@@ -131,6 +134,7 @@ class Validator:
                         i += 1
                     plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
             else:
+                plt.close()
                 fig, ax = plt.subplots(2, 1)
                 j = 0
                 for n in [True, False]:
@@ -181,14 +185,29 @@ class Validator:
 
                 plt.savefig('./results{}{}.jpg'.format(path[6:-4], 'train' if n else 'val'), bbox_inches='tight', dpi=500)
 
+
     def evaluate_piecewise(self, model, path, data_t, data_v, save_plot=False, horizon_window=1):
         c1, c2 = self.evaluate_constraint(model)
+
+        # record
+        g, t = path.split('_')[-3][-2], path.split('_')[-1][-6]
+        if len(path.split('_')[-3]) > 5:
+            g = path.split('_')[-3][-3:-1]
+        if len(path.split('_')[-1]) > 9:
+            t = path.split('_')[-1][-7:-5]
+
+        dic = {'gamma': [float(g)], 'thd': [float(t)], 'c1': [float(c1)], 'c2': [float(c2)]}
+        temp = pd.DataFrame(dic)
+        self.record = pd.concat([self.record, temp], axis=0)
+        self.record.to_csv(r'./statistic/{}/record.csv'.format(self.dataset))
+
         pre_batches = []
         if save_plot:
             if self.output_size > 1:
                 for n in [True, False]:
                     hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
                               , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
+                    plt.close()
                     f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
 
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
@@ -265,6 +284,7 @@ class Validator:
                                 bbox_inches='tight',
                                 dpi=500)
             else:
+                plt.close()
                 fig, ax = plt.subplots(2, 1)
                 j = 0
                 for n in [True, False]:
@@ -367,7 +387,7 @@ def main(args, if_filter=True, plt3D=False, piecewise=False):   # if_filter: ign
             if not piecewise:
                 validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
             else:
-                validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, save_plot=True, horizon_window=45)
+                validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, save_plot=True, horizon_window=60)
 
     # if if_filter:
     #     idx = validator.l_r * validator.l_thd
