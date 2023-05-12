@@ -40,15 +40,14 @@ class Validator:
     def load_data(self):
         data_t = [r'../data/{}/train/train_input.csv'.format(self.dataset)
                        , r'../data/{}/train/train_output.csv'.format(self.dataset)]
-        # data_v = [r'../data/{}/val/val_input.csv'.format(self.dataset)
-        #                , r'../data/{}/val/val_output.csv'.format(self.dataset)]
-        data_v = [r'../data/{}/test/test_input.csv'.format(self.dataset)
-                       , r'../data/{}/test/test_output.csv'.format(self.dataset)]
+        data_v = [r'../data/{}/val/val_input.csv'.format(self.dataset)
+                       , r'../data/{}/val/val_output.csv'.format(self.dataset)]
+        # data_v = [r'../data/{}/test/test_input.csv'.format(self.dataset)
+        #                , r'../data/{}/test/test_output.csv'.format(self.dataset)]
         return data_t, data_v
 
     @staticmethod
-    def nrmse(y, y_hat):  # normalization to y
-        # y = y.squeeze(1)
+    def nrmse(y, y_hat):
         std = torch.std(y_hat, dim=0)
         norm = torch.norm(y.squeeze() - y_hat.squeeze())
         res = 1 / std * np.sqrt(1 / y.shape[0]) * norm
@@ -367,7 +366,7 @@ class Validator:
         return c[0], c[1]
 
 
-def main(args, if_filter=True, plt3D=False, piecewise=False):   # if_filter: ignore whether gamma=0 or threshold=0
+def main(args, piecewise=False):   # if_filter: ignore whether gamma=0 or threshold=0
     validator = Validator(args, device='cuda')
     # validator = Validator([*range(11)], [*range(11)], device='cuda')
     data_train, data_val = validator.load_data()
@@ -378,49 +377,18 @@ def main(args, if_filter=True, plt3D=False, piecewise=False):   # if_filter: ign
     models = os.listdir(file)
     save_jpgs = os.listdir('results/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning
                                                                  , args.reg_methode))
-    # models = ['model_sl_5_bs_64_hs_5_ep_500_tol_1e-05_r_tensor([2, 2])_thd_tensor([1, 1]).pth']
+
+    hw = 60
     for model in models:
-        temp1 = model[:-4] + 'val.jpg'
-        temp2 = model[:-4] + 'train.jpg'
+        temp1 = model[:-4] + f'_{hw}_val.jpg'
+        temp2 = model[:-4] + f'_{hw}_train.jpg'
         if not (temp1 in save_jpgs or temp2 in save_jpgs):
             path = file + model
             lstmmodel = validator.load_model(lstmmodel, path)
             if not piecewise:
                 validator.evaluate(lstmmodel, path, data_train, data_val, save_plot=True)
             else:
-                validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, save_plot=True, horizon_window=60)
+                validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, save_plot=True, horizon_window=hw)
 
-    # if if_filter:
-    #     idx = validator.l_r * validator.l_thd
-    #     gamma = validator.l_r[idx != 0]
-    #     thd = validator.l_thd[idx != 0]
-    #     c = pd.DataFrame(validator.l_c)[idx != 0]
-    # else:
-    #     gamma = validator.l_r
-    #     thd = validator.l_thd
-    #     c = pd.DataFrame(validator.l_c)
-
-    # if plt3D:
-    #     ax_ = plt.axes(projection='3d')
-    #     ax_.scatter3D(gamma, thd, c.iloc[:, 0], c=c.iloc[:, 0], s=500*normalize(c.iloc[:, 1]) if if_filter else 100)  # min: -0.9983   max:-0.9955
-    #                                                                                         # smaller dot: more negative
-    #
-    #     ax_.set_xlabel('ratio')
-    #     ax_.set_ylabel('threshold')
-    #     ax_.set_zlabel('c1')
-    # else:
-    #     c.reset_index(drop=True, inplace=True)
-    #     df = pd.concat([pd.Series(gamma), pd.Series(thd), c], axis=1)
-    #     df.columns = ['r', 'thd', 'c1', 'c2']
-    #     df = df.groupby('thd')
-    #     fig, ax = plt.subplots(2, 1, sharex=True)
-    #     for i, dg in df:
-    #         ax[0].plot(dg.loc[:, 'r'], dg.loc[:, 'c1'], label=i)
-    #         ax[1].plot(dg.loc[:, 'r'], dg.loc[:, 'c2'], label=i)
-    #     ax[0].set_title('constraint 1')
-    #     ax[1].set_title('constraint 2')
-    #     lines, labels = fig.axes[-1].get_legend_handles_labels()
-    #     fig.legend(lines, labels, bbox_to_anchor=(0.74, 0.96), ncol=4, framealpha=1)
-    # plt.show()
     print('-------------Finish---------------------')
 
