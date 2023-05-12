@@ -34,7 +34,7 @@ parser.add_argument('--gamma', default=torch.tensor([0., 0.]), help='value of ga
 parser.add_argument('--threshold', default=torch.tensor([0.0, 0.0]), help='value of threshold', type=torch.Tensor)
 
 if __name__ == '__main__':
-    grid_Search = False
+    grid_Search = True
     if grid_Search:
         # threshold_values = [x for x in range(0, 10)]
         # gamma_values = [x for x in range(0, 10)]
