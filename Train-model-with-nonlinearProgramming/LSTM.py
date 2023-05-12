@@ -9,6 +9,7 @@ from scipy.optimize import minimize
 import pandas as pd
 import pickle
 import time
+import copy
 import datetime
 
 def sigmoid(x):
@@ -58,10 +59,10 @@ def fun(W):
             tanh(np.dot(W_c, u[i]) + np.dot(U_c, X) + b_c)
         X = sigmoid(np.dot(W_o, u[i]) + np.dot(U_o, X) + b_o) * tanh(C)
         y_pred = np.dot(W_y.T, X) + b_y
+        # y_pred = y_pred * y_std + y_mean
         myloss += np.power((y_pred - y_true[i]).flatten(), 2)
     print(f'loss:{myloss / len(u)}')
     return myloss / len(u)    # normalization
-
 
 
 def constraint(W):
@@ -82,6 +83,7 @@ def constraint(W):
            sigmoid(np.linalg.norm(np.hstack((W_f, U_f, b_f)), np.inf)),
            1 - (1 + sigmoid(np.linalg.norm(np.hstack((W_o, U_o, b_o)), np.inf))) *
            sigmoid(np.linalg.norm(np.hstack((W_i, U_i, b_i)), np.inf)) * np.linalg.norm(U_c, 1)]
+    print(f'constraints: {con}')
     return con
 
 
@@ -108,8 +110,8 @@ def initial():
 def load_data(train=True, noise=True):
     if train:
         if noise:
-            data_input = pd.read_csv("../data/pHdata/train/train_input.csv", header=None)
-            data_output = pd.read_csv("../data/pHdata/train/train_output.csv", header=None)
+            data_input = pd.read_csv("../data/pHdata/train/clean data/train_input.csv", header=None)
+            data_output = pd.read_csv("../data/pHdata/train/clean data/train_output.csv", header=None)
         else:
             data_input = pd.read_csv("../data/train/train_input_clean.csv", header=None)
             data_output = pd.read_csv("../data/train/train_output_clean.csv", header=None)
@@ -125,19 +127,24 @@ def load_data(train=True, noise=True):
     return data_input, data_output
 
 """ hyperparameters """
+# x_mean = pd.read_csv("../data/pHdata/train/clean data/train_input.csv", header=None).iloc[:, 1].mean(axis=0)
+# x_std = pd.read_csv("../data/pHdata/train/clean data/train_input.csv", header=None).iloc[:, 1].std(axis=0)
+# y_mean = pd.read_csv("../data/pHdata/train/clean data/train_output.csv", header=None).iloc[:, 1].mean(axis=0)
+# y_std = pd.read_csv("../data/pHdata/train/clean data/train_output.csv", header=None).iloc[:, 1].std(axis=0)
 noise, train = True, True
 for if_con in [True]:
     numInput = 1
     numOutput = 1
     numHiddenUnits = 5
-    tol = 1e-12
+    tol = 1e-16
 
     """ training """
     W0 = initial()
     cons = ({'type': 'ineq', 'fun': constraint})
 
-
     data_input, data_output = load_data()
+    # data_input = (data_input - x_mean) / x_std
+    # labels = data_output
 
     method_ = "SLSQP"
     time_start = time.time()

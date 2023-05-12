@@ -42,7 +42,6 @@ class Incremental_PIDRegularizer(PIDRegularizer):
         super(Incremental_PIDRegularizer, self).__init__(k)
         self.pprev_reg_loss = [0, 0]
 
-
     def forward(self, loss, reg_loss):
         self.reg_loss = reg_loss
         self.loss = loss

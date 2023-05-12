@@ -51,8 +51,7 @@ class PHSimulator:
 
     """state space equation"""
     def state_space(self, t, x):
-
-        ipt = self.U[int(t)]
+        ipt = self.U[int(t-0.1)]
         # ipt = self.q3 + self.U[int(t-0.1)]
         dis = self.q2
 
@@ -91,7 +90,7 @@ def main():
     # TODO: Add whitenoise to input and output data to prevent overfitting.
     #   Keep the unnoised data for plotting however.
 
-    train = False
+    train = True
     noise_mulipiler = 0
     if train:   # train: 17 val: 27
         np.random.seed(17)
@@ -155,8 +154,8 @@ def main():
     ax[-1].set_xlabel('time [s]')
 
     plt.show()
-    pd.DataFrame(u_train_normed[::10]).to_csv(save_path[0], header=None)
-    pd.DataFrame(y_train_noised).to_csv(save_path[1], header=None)
+    # pd.DataFrame(u_train_normed[::10]).to_csv(save_path[0], header=None)
+    # pd.DataFrame(y_train_noised).to_csv(save_path[1], header=None)
 
 
 if __name__ == '__main__':

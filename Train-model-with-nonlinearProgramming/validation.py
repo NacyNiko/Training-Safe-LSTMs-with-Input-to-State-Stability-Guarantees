@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
+from sklearn.metrics import r2_score
 
 """ define sigmoid """
 def sigmoid(x):
@@ -47,7 +48,6 @@ def validate(W, data_input):
     u = data_input
     y_val = []
 
-
     """ initialize hidden state & cell state"""
     C = np.random.randn(5, 1)
     X = np.random.randn(5, 1)
@@ -79,6 +79,8 @@ def nrmse(y, y_hat):  # normalization to y
     norm = torch.norm(y.squeeze() - y_hat.squeeze())
     res = 1 / std * np.sqrt(1 / y.shape[0]) * norm
     return res
+
+
 def main():
     """ load trained model """
     models = os.listdir('./models')
@@ -88,52 +90,54 @@ def main():
         model = pickle.load(model_file)
         W = model.x
 
-
-        f, ax = plt.subplots(2, 1)
-        i = 0
-        """ train or validation """
-        for train in [True, False]:
-            noise = True
-            if train:
-                """ load training set: 4400 samples """
-                if noise:
-                    data_input = pd.read_csv("../data/pHdata/train/train_input.csv", header=None).iloc[:, 1]
-                    y_true = pd.read_csv("../data/pHdata/train/train_output.csv", header=None).iloc[:, 1]
+        if not os.path.exists('./result/python/fig/{}.jpg'.format(file[:-4])):
+            print('file: {}, {}'.format(file, model.running_time))
+            f, ax = plt.subplots(2, 1)
+            i = 0
+            """ train or validation """
+            for train in [True, False]:
+                noise = True
+                if train:
+                    """ load training set: 4400 samples """
+                    if noise:
+                        data_input = pd.read_csv("../data/pHdata/train/clean data/train_input.csv", header=None).iloc[:, 1]
+                        y_true = pd.read_csv("../data/pHdata/train/clean data/train_output.csv", header=None).iloc[:, 1]
+                    else:
+                        data_input = pd.read_csv("../data/train/train_input_clean.csv", header=None).iloc[:, 1]
+                        y_true = pd.read_csv("../data/train/train_output_clean.csv", header=None).iloc[:, 1]
                 else:
-                    data_input = pd.read_csv("../data/train/train_input_clean.csv", header=None).iloc[:, 1]
-                    y_true = pd.read_csv("../data/train/train_output_clean.csv", header=None).iloc[:, 1]
-            else:
-                """ load validation set: 2250 samples """
-                if noise:
-                    data_input = pd.read_csv("../data/pHdata/val/val_input.csv", header=None).iloc[:, 1]
-                    y_true = pd.read_csv("../data/pHdata/val/val_output.csv", header=None).iloc[:, 1]
-                else:
-                    data_input = pd.read_csv("../data/val/val_input_clean.csv", header=None).iloc[:, 1]
-                    y_true = pd.read_csv("../data/val/val_output_clean.csv", header=None).iloc[:, 1]
+                    """ load validation set: 2250 samples """
+                    if noise:
+                        data_input = pd.read_csv("../data/pHdata/test/test_input.csv", header=None).iloc[:, 1]
+                        y_true = pd.read_csv("../data/pHdata/test/test_output.csv", header=None).iloc[:, 1]
+                    else:
+                        data_input = pd.read_csv("../data/val/val_input_clean.csv", header=None).iloc[:, 1]
+                        y_true = pd.read_csv("../data/val/val_output_clean.csv", header=None).iloc[:, 1]
 
-            """ calculate y_val """
-            y_val, cons = validate(W, data_input)
+                """ calculate y_val """
+                y_val, cons = validate(W, data_input)
 
-            """ plot """
-            nrmse_score = nrmse(y_val[10:], y_true[10:])
-            f.suptitle('c1:{} c2:{}'.format(cons[0], cons[1]))
-            ax[i].plot(y_val[10:], color='m', label='pred', alpha=0.8)
-            ax[i].plot(y_true[10:], color='c', label='real', linestyle='--', alpha=0.5)
-            ax[i].tick_params(labelsize=5)
-            ax[i].legend(loc='best')
-            ax[i].set_title('NRMSE on {} set: {:.3f}'.format('train' if train else 'val', nrmse_score), fontsize=8)
-            i += 1
-        plt.savefig('./result/python/fig/{}.jpg'.format(file[:-4]), bbox_inches='tight', dpi=500)
-            # plt.figure()
-            # plt.title('constraints: c1:{}, c2:{}'.format(cons[0], cons[1]))
-            # plt.plot([*range(len(data_input) - 100)], y_val[100:], color='b', label='Prediction')
-            # plt.plot([*range(len(data_input) - 100)], y_true[100:], color='r', label='Ground Truth')
-            #
-            # # calculate FIT
-            # fit_ = FIT(y_val[100:], y_true[100:])
-            # plt.legend()
-            # plt.title('pH on {} set with FIT: {:.3f}%'.format('train' if train else "validation", fit_))
-            # plt.show()
+                """ plot """
+                nrmse_score = nrmse(y_val[10:], y_true[10:])
+                r2 = r2_score(y_val[10:], y_true[10:])
+                f.suptitle('c1:{} c2:{}'.format(cons[0], cons[1]))
+                ax[i].plot(y_val[10:], color='m', label='pred', alpha=0.8)
+                ax[i].plot(y_true[10:], color='c', label='real', linestyle='--', alpha=0.5)
+                ax[i].tick_params(labelsize=5)
+                ax[i].legend(loc='best')
+                ax[i].set_title('NRMSE on {} set: {:.3f} {:.3f}'.format('train' if train else 'val', nrmse_score, r2), fontsize=8)
+                i += 1
+            plt.savefig('./result/python/fig/{}.jpg'.format(file[:-4]), bbox_inches='tight', dpi=500)
+                # plt.figure()
+                # plt.title('constraints: c1:{}, c2:{}'.format(cons[0], cons[1]))
+                # plt.plot([*range(len(data_input) - 100)], y_val[100:], color='b', label='Prediction')
+                # plt.plot([*range(len(data_input) - 100)], y_true[100:], color='r', label='Ground Truth')
+                #
+                # # calculate FIT
+                # fit_ = FIT(y_val[100:], y_true[100:])
+                # plt.legend()
+                # plt.title('pH on {} set with FIT: {:.3f}%'.format('train' if train else "validation", fit_))
+                # plt.show()
 if __name__ == '__main__':
     main()
 

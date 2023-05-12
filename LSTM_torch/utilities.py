@@ -55,9 +55,9 @@ def cal_constraints(hidden_size, paras, df=None):
     if df is not None:
         df.loc[len(df.index), columns] = [norm_ig.item(), sigmoid_norm_ig.item(), norm_og.item(), sigmoid_norm_og.item(),
                                  norm_fg.item(), sigmoid_norm_fg.item(), norm_cs.item(), con1.item(), con2.item()]
-    # TODO: show how does each term change.
+
     return [con1, con2], df
-    # TODO: PID strategy
+
 
 
 class DataCreater:
