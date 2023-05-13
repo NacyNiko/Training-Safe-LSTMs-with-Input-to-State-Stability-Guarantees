@@ -107,11 +107,11 @@ def initial():
     return np.concatenate([Wf, Wi, Wo, Wc, Uf, Ui, Uo, Uc, bf, bi, bo, bc, Wy, by])
 
 
-def load_data(train=True, noise=True):
+def load_data(train=True, noise=True, dataset='pHdata'):
     if train:
         if noise:
-            data_input = pd.read_csv("../data/pHdata/train/clean data/train_input.csv", header=None)
-            data_output = pd.read_csv("../data/pHdata/train/clean data/train_output.csv", header=None)
+            data_input = pd.read_csv(f"../data/{dataset}/train/clean data/train_input.csv", header=None)
+            data_output = pd.read_csv(f"../data/{dataset}/train/clean data/train_output.csv", header=None)
         else:
             data_input = pd.read_csv("../data/train/train_input_clean.csv", header=None)
             data_output = pd.read_csv("../data/train/train_output_clean.csv", header=None)
