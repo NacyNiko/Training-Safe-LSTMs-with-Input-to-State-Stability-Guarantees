@@ -6,13 +6,15 @@
 from utilities import PlotGraph
 import pandas as pd
 import matplotlib.pyplot as plt
+import pickle
 
 # pg = PlotGraph('pHdata')
 # pg.line_plot()
 # pg.plot_K()
 
-datay = pd.read_csv(r'../data/pHdata/train/train_output.csv')
-prediction = pd.read_csv(r'../LSTM_torch/statistic/pHdata/Test_vanilla_PID.csv')
-plt.plot(datay.iloc[:, 1])
-plt.plot(prediction.iloc[1:, 0])
+with open(r'./statistic/robot_forward/hs_150_ls_2_sl_40/weights_vanilla_2zero.pkl', 'rb') as f:
+    df = pickle.load(f)
+
+plt.plot(df.loc[1000:, 'reg_loss2'])
+# plt.plot(df.iloc[1:, 0])
 plt.show()

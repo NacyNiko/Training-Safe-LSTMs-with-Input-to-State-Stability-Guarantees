@@ -37,8 +37,7 @@ class LossVanilla(LossFcn):
         self.cons = cons
         self.threshold = threshold
         con1, con2 = self.cons[0], self.cons[1]
-        return None, (-con1 + self.threshold[0], -con2 + self.threshold[1])
-        # return None, (con1 + self.threshold[0], con2 + self.threshold[1])
+        return None, (con1 + self.threshold[0], con2 + self.threshold[1])
 
 
 class LossBLS(LossFcn):
@@ -46,8 +45,10 @@ class LossBLS(LossFcn):
         super(LossBLS, self).__init__()
         self.lstm_model = lstm_model
         self.old_model = copy.deepcopy(lstm_model).to('cuda:0')
+        # self.old_model.load_state_dict(torch.load(
+        #     'models/pHdata/curriculum_None/relu/model_sl_10_bs_64_hs_5_ep_100_tol_-0.001_gm_[1,1]_thd_[1,1].pth'))
         self.old_model.load_state_dict(torch.load(
-            'models/pHdata/curriculum_None/relu/model_sl_10_bs_64_hs_5_ep_100_tol_-0.001_gm_[1,1]_thd_[1,1].pth'))
+            'models/robot_forward/curriculum_PID/vanilla/model_sl_40_bs_128_hs_150_ep_100_tol_-0.001_gm_[0.00152,0.0522]_thd_[-0.05,-0.1].pth'))
         self.temp_lstm = copy.deepcopy(lstm_model.lstm)
         self.hidden_size = lstm_model.lstm.hidden_size
 

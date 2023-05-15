@@ -5,6 +5,7 @@
 import copy
 import os.path
 import pickle
+import time
 
 import pandas as pd
 from networks import LstmRNN, PidNN
@@ -17,12 +18,6 @@ import numpy as np
 
 from regularizer import *
 from lossfunctions import *
-"""
-输入： 2 维度，[t-w:t]的y 以及 [t]的u
-输出： lstm最后一层隐状态经过Linear层的值
-"""
-
-# Define LSTM Neural Networks
 
 
 class IssLstmTrainer:
@@ -63,8 +58,8 @@ class IssLstmTrainer:
         #  data set
         data = [r'../data/{}/train/train_input.csv'.format(self.dataset)
                 , r'../data/{}/train/train_output.csv'.format(self.dataset)
-                , r'../data/{}/val/val_input.csv'.format(self.dataset)
-                , r'../data/{}/val/val_output.csv'.format(self.dataset)]
+                , r'../data/{}/val/test_input.csv'.format(self.dataset)
+                , r'../data/{}/val/test_output.csv'.format(self.dataset)]
         train_x, train_y, stat_x, stat_y = DataCreater(data[0], data[1], data[2], data[3], self.input_size
                                        , self.output_size).creat_new_dataset(seq_len=self.seq_len)
         stat_x[0] = stat_x[0].to(device)
@@ -116,9 +111,10 @@ class IssLstmTrainer:
             if self.curriculum_learning == 'balance':  # TODO: weight of reg_loss should decrease with decreasing reg_loss
                 self.regularizer = BlaRegularizer()
 
-            # 'exp' and '2zero' have similar idea: enforce constraints to a negative value closed to zero
             elif self.curriculum_learning == 'exp':
                 self.regularizer = ExpRegularizer()
+            elif self.curriculum_learning == '2part':
+                self.regularizer = TwopartRegularizer()
             elif self.curriculum_learning == '2zero':
                 self.regularizer = ToZeroRegularizer()
             elif self.curriculum_learning == 'PID':   # control reg loss to 0 with variable threshold
@@ -130,8 +126,10 @@ class IssLstmTrainer:
 
         k_list = pd.DataFrame()
         # results = torch.empty(1, 1).to(device)
+        times = 0
         for epoch in range(self.max_epochs):
             print(epoch)
+            start = time.time()
             for batch_cases, labels in train_set:
                 batch_cases = batch_cases.transpose(0, 1).to(torch.float32).to(device) # [batch size, seq len, feature]
                 labels = labels.to(torch.float32).to(device)
@@ -140,14 +138,13 @@ class IssLstmTrainer:
                 constraints, weight_save = cal_constraints(self.hidden_size, lstm_model.lstm.parameters(), df=weight_save)
                 _, reg_loss = self.lossfcn.forward(constraints, self.threshold)
 
-                overshoot, response, steady_error = self.loss_saver.add_loss(torch.tensor([reg_loss]), epoch)
-
                 output, _ = lstm_model(batch_cases)
                 output = output * stat_y[1] + stat_y[0]
                 output = output.to(torch.float32).reshape(labels.shape)
                 loss_ = criterion(output, labels)
 
                 if self.curriculum_learning == 'PID' and self.dynamic_k:
+                    overshoot, response, steady_error = self.loss_saver.add_loss(torch.tensor([reg_loss]), epoch)
                     dynamic_k = Pid_NN(batch_cases.reshape(-1)).to(torch.float32).to(device)
                     k_list = pd.concat([k_list, pd.DataFrame(dynamic_k.cpu().detach().numpy().reshape(1, -1))], axis=0)
                     self.regularizer = PIDRegularizer(dynamic_k)
@@ -178,14 +175,14 @@ class IssLstmTrainer:
                 else:
                     loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1]
 
-                if self.dynamic_k:
-                    weight_save.iloc[-1, -3:-1] = [gamma1.item() * reg_loss[0].item(), gamma2.item() * reg_loss[1].item()]
-                else:
-                    weight_save.iloc[-1, -3:-1] = [gamma1 * reg_loss[0].item(),
-                                                   gamma2 * reg_loss[1].item()]
+                weight_save.iloc[-1, -3:-1] = [gamma1.item() * reg_loss[0].item()
+                                               if isinstance(gamma1, torch.Tensor) else gamma1 * reg_loss[0].item(),
+                                                   gamma2.item() * reg_loss[1].item()
+                                               if isinstance(gamma2, torch.Tensor) else gamma2 * reg_loss[1].item()]
                 weight_save.iloc[-1, -1] = loss_.item()
 
                 """ backpropagation """
+
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -210,9 +207,10 @@ class IssLstmTrainer:
 
             if break_flag:
                 break
-
+            times += time.time() - start
+        print(f'mean epoch time:{times/self.max_epochs}')
         """ save model """
-        self.save_model(self.reg_methode, self.curriculum_learning, lstm_model, [gamma1, gamma2], thd=self.threshold)
+        self.save_model(self.reg_methode, self.curriculum_learning, lstm_model, [gamma1, gamma2], times, thd=self.threshold)
 
         folder_path = f'./statistic/{self.dataset}/hs_{self.hidden_size}_ls_{self.num_layer}_sl_{self.seq_len}'
         if not os.path.exists(folder_path):
@@ -224,12 +222,12 @@ class IssLstmTrainer:
         if self.dynamic_k:
             k_list.to_csv(folder_path + f'/K_{self.reg_methode}_{self.curriculum_learning}.csv', index=False)
 
-    def save_model(self, methode, curriculum_learning, model, gamma, thd):
+    def save_model(self, methode, curriculum_learning, model, gamma, times, thd):
         """ model save path """
-        model_save_path = 'models/{}/curriculum_{}/{}/model_sl_{}_bs_{}_hs_{}_ep_{}_tol_{}_gm_[{:.3g}' \
+        model_save_path = 'models/{}/curriculum_{}/{}/model_sl_{}_bs_{}_hs_{}_ep_{}_tim_{}_gm_[{:.3g}' \
                           ',{:.3g}]_thd_[{:.3g},{:.3g}].pth'.format(self.dataset, curriculum_learning, methode
                             , self.seq_len, self.batch_size, self.hidden_size, self.max_epochs
-                            ,self.tol, gamma[0], gamma[1], thd[0], thd[1])
+                            , times/self.max_epochs, gamma[0], gamma[1], thd[0], thd[1])
 
         if not os.path.exists('models/{}/curriculum_{}/{}'.format(self.dataset, curriculum_learning, methode)):
             os.makedirs('models/{}/curriculum_{}/{}'.format(self.dataset, curriculum_learning, methode))

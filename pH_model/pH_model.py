@@ -105,8 +105,8 @@ def main():
         np.random.seed(27)
         training_samples = 2250
         if noise_mulipiler:
-            save_path = [r'../data/pHdata/val/val_input.csv',
-                         r'../data/pHdata/val/val_output.csv']
+            save_path = [r'../data/pHdata/val/test_input.csv',
+                         r'../data/pHdata/val/test_output.csv']
         else:
             save_path = [r'../data/pHdata/val/val_input_clean.csv',
                      r'../data/pHdata/val/val_output_clean.csv']
@@ -154,8 +154,6 @@ def main():
     ax[-1].set_xlabel('time [s]')
 
     plt.show()
-    # pd.DataFrame(u_train_normed[::10]).to_csv(save_path[0], header=None)
-    # pd.DataFrame(y_train_noised).to_csv(save_path[1], header=None)
 
 
 if __name__ == '__main__':

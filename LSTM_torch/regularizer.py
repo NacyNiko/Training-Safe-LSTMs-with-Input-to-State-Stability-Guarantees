@@ -58,6 +58,24 @@ class Incremental_PIDRegularizer(PIDRegularizer):
         return self.gamma[0], self.gamma[1]
 
 
+class TwopartRegularizer(Regularizer):
+    def __init__(self):
+        super(TwopartRegularizer, self).__init__()
+
+    def forward(self, loss, reg_loss):
+        self.reg_loss = reg_loss
+        self.loss = loss
+        temp = []
+        for i in range(2):
+            if self.reg_loss[i] < 0:
+                gamma = 0.001
+            else:
+                gamma = 1
+            temp.append(gamma)
+        gamma1, gamma2 = temp
+        return gamma1, gamma2
+
+
 class ToZeroRegularizer(Regularizer):
     def __init__(self):
         super(ToZeroRegularizer, self).__init__()
@@ -68,9 +86,9 @@ class ToZeroRegularizer(Regularizer):
         temp = []
         for i in range(2):
             if self.reg_loss[i] < 0:
-                gamma = 0.1
+                gamma = -0.001
             else:
-                gamma = 10
+                gamma = 1
             temp.append(gamma)
         gamma1, gamma2 = temp
         return gamma1, gamma2
@@ -83,8 +101,8 @@ class ExpRegularizer(Regularizer):
     def forward(self, loss, reg_loss):
         self.reg_loss = reg_loss
         self.loss = loss
-        gamma1 = torch.exp(self.reg_loss[0].detach())
-        gamma2 = torch.exp(self.reg_loss[1].detach())
+        gamma1 = torch.exp(min(self.reg_loss[0].detach(), torch.tensor(10)))
+        gamma2 = torch.exp(min(self.reg_loss[1].detach(), torch.tensor(10)))
         return gamma1, gamma2
 
 
@@ -95,7 +113,13 @@ class BlaRegularizer(Regularizer):
     def forward(self, loss, reg_loss):
         self.reg_loss = reg_loss
         self.loss = loss
-        gamma1 = self.loss.detach() / self.reg_loss[0].detach()
-        gamma2 = self.loss.detach() / self.reg_loss[1].detach()
+        temp = []
+        for i in range(2):
+            if self.reg_loss[i].detach() > 0:
+                gamma = self.loss.detach() / self.reg_loss[i].detach()
+            else:
+                gamma = 0
+            temp.append(gamma)
+        gamma1, gamma2 = temp
         return gamma1, gamma2
 
