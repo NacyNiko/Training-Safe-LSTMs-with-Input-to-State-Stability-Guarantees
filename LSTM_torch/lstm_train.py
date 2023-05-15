@@ -224,7 +224,7 @@ class IssLstmTrainer:
 
     def save_model(self, methode, curriculum_learning, model, gamma, times, thd):
         """ model save path """
-        model_save_path = 'models/{}/curriculum_{}/{}/model_sl_{}_bs_{}_hs_{}_ep_{}_tim_{}_gm_[{:.3g}' \
+        model_save_path = 'models/{}/curriculum_{}/{}/model_sl_{}_bs_{}_hs_{}_ep_{}_tim_{:.3f}_gm_[{:.3g}' \
                           ',{:.3g}]_thd_[{:.3g},{:.3g}].pth'.format(self.dataset, curriculum_learning, methode
                             , self.seq_len, self.batch_size, self.hidden_size, self.max_epochs
                             , times/self.max_epochs, gamma[0], gamma[1], thd[0], thd[1])
