@@ -80,7 +80,7 @@ if __name__ == '__main__':
                 size_i = 6
                 size_o = 6
                 ls = 40
-                ep = 200
+                ep = 500
                 bs = 128
 
             print(f'training start on: {dataset} with cl: {cl}, rm: {rm}')
