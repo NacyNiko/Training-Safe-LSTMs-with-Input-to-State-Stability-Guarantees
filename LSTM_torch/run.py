@@ -76,7 +76,7 @@ if __name__ == '__main__':
                 ep = 100
                 bs = 64
             else:
-                hs = 150
+                hs = 300
                 l = 1
                 size_i = 6
                 size_o = 6
