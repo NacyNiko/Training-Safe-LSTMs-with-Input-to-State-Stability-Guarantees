@@ -86,7 +86,7 @@ class ToZeroRegularizer(Regularizer):
         temp = []
         for i in range(2):
             if self.reg_loss[i] < 0:
-                gamma = -0.01
+                gamma = -0.0005
             else:
                 gamma = 1
             temp.append(gamma)

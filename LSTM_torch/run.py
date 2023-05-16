@@ -64,7 +64,7 @@ if __name__ == '__main__':
     #     end = time.time()
     #     print(f'total times:{-start+end}')
     #     validation.main(parser.parse_args(), piecewise=True)
-    for cl, rm in [('2part', 'vanilla'), ('2zero', 'vanilla')]:
+    for cl, rm in [('2zero', 'vanilla')]:
         # (None, 'relu'), , ('balance', 'relu'), ('exp', 'vanilla')
         for dataset in ['pHdata', 'robot_forward']:
             if dataset == 'pHdata':
