@@ -68,7 +68,7 @@ class TwopartRegularizer(Regularizer):
         temp = []
         for i in range(2):
             if self.reg_loss[i] < 0:
-                gamma = 0.001
+                gamma = 0.01
             else:
                 gamma = 1
             temp.append(gamma)
@@ -86,7 +86,7 @@ class ToZeroRegularizer(Regularizer):
         temp = []
         for i in range(2):
             if self.reg_loss[i] < 0:
-                gamma = -0.001
+                gamma = -0.01
             else:
                 gamma = 1
             temp.append(gamma)
