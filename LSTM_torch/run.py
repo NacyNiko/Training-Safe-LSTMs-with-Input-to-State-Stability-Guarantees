@@ -69,7 +69,7 @@ if __name__ == '__main__':
         # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
         for dataset in ['pHdata', 'robot_forward']:
             if dataset == 'pHdata':
-                for dy in [False, True]:
+                for dy in [True]:
                     hs = 5
                     l = 1
                     size_i = 1
@@ -78,7 +78,7 @@ if __name__ == '__main__':
                     ep = 100
                     bs = 64
             else:
-                for dy in [False, True]:
+                for dy in [True]:
                     hs = 250
                     l = 1
                     size_i = 6
