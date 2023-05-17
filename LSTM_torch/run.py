@@ -67,7 +67,7 @@ if __name__ == '__main__':
     #     validation.main(parser.parse_args(), piecewise=True)
     for cl, rm, dy in [('balance', 'relu', False)]:
         # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
-        for dataset in ['pHdata']:
+        for dataset in ['robot_forward']:
             if dataset == 'pHdata':
                 hs = 5
                 l = 1
