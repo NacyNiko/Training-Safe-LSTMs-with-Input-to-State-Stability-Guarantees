@@ -137,8 +137,10 @@ class IssLstmTrainer:
                 # calculate loss
                 constraints, weight_save = cal_constraints(self.hidden_size, lstm_model.lstm.parameters(), df=weight_save)
                 _, reg_loss = self.lossfcn.forward(constraints, self.threshold)
+
                 if self.curriculum_learning == 'PID':
-                    reg_loss = -reg_loss
+                    reg_loss[0] = -reg_loss[0]
+                    reg_loss[1] = -reg_loss[1]
 
                 output, _ = lstm_model(batch_cases)
                 output = output * stat_y[1] + stat_y[0]
