@@ -38,9 +38,6 @@ class IssLstmTrainer:
 
         self.gamma1 = args.gamma[0]
         self.gamma2 = args.gamma[1]
-        # if self.curriculum_learning == 'PID':
-        #     self.threshold = -args.threshold
-        # else:
         self.threshold = args.threshold
         self.lossfcn = None
         self.regularizer = None
@@ -104,7 +101,7 @@ class IssLstmTrainer:
         elif self.reg_methode == 'relu':
             self.lossfcn = LossRelu()
         elif self.reg_methode == 'vanilla':
-            self.lossfcn = LossVanilla(self.curriculum_learning)
+            self.lossfcn = LossVanilla()
         else:
             raise 'undefined regularization method!'
 
