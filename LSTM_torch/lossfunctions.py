@@ -9,10 +9,11 @@ from utilities import cal_constraints
 
 
 class LossFcn(nn.Module):
-    def __init__(self):
+    def __init__(self, curriculum):
         super(LossFcn, self).__init__()
         self.cons = None
         self.threshold = None
+        self.curriculum = curriculum
 
     def forward(self, cons, threshold):
         pass
@@ -37,9 +38,11 @@ class LossVanilla(LossFcn):
         self.cons = cons
         self.threshold = threshold
         con1, con2 = self.cons[0], self.cons[1]
-        return None, (con1 + self.threshold[0], con2 + self.threshold[1])
+        if self.curriculum == 'PID':
+            return None, (-con1 + self.threshold[0], -con2 + self.threshold[1])
+        else:
+            return None, (con1 + self.threshold[0], con2 + self.threshold[1])
 
-        # return None, (-con1 + self.threshold[0], -con2 + self.threshold[1])
 
 
 class LossBLS(LossFcn):
