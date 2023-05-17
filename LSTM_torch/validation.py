@@ -396,7 +396,7 @@ def main(args, piecewise=False):
     save_jpgs = os.listdir('results/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning
                                                                  , args.reg_methode))
 
-    for hw in [60]:  # 1, 15, 30, 45,
+    for hw in [1, 15, 30, 45, 60]:  # ,
         for model in models:
             temp1 = model[:-4] + f'_{hw}_val.jpg'
             temp2 = model[:-4] + f'_{hw}_train.jpg'

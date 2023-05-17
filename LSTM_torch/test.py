@@ -12,7 +12,7 @@ import pickle
 # pg.line_plot()
 # pg.plot_K()
 
-with open(r'./statistic/pHdata/hs_5_ls_1_sl_10/weights_vanilla_2zero.pkl', 'rb') as f:
+with open(r'./statistic/robot_forward/hs_250_ls_1_sl_40/weights_vanilla_exp.pkl', 'rb') as f:
     df = pickle.load(f)
 
 plt.plot(df.loc[1000:, 'c2'])
