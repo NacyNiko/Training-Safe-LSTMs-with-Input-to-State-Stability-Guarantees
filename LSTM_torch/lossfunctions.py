@@ -38,8 +38,8 @@ class LossVanilla(LossFcn):
         self.cons = cons
         self.threshold = threshold
         con1, con2 = self.cons[0], self.cons[1]
-        return None, (-con1 + self.threshold[0], -con2 + self.threshold[1])
-
+        # return None, (-con1 + self.threshold[0], -con2 + self.threshold[1])
+        return None, (con1 + self.threshold[0], con2 + self.threshold[1])
 
 
 
