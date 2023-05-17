@@ -15,6 +15,6 @@ import pickle
 with open(r'./statistic/robot_forward/hs_250_ls_1_sl_40/weights_vanilla_exp.pkl', 'rb') as f:
     df = pickle.load(f)
 
-plt.plot(df.loc[1000:, 'c1'])
+plt.plot(df.loc[16000:, 'c2'])
 # plt.plot(df.iloc[1:, 0])
 plt.show()
