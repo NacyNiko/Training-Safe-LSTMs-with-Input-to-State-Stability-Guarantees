@@ -104,7 +104,7 @@ class IssLstmTrainer:
         elif self.reg_methode == 'relu':
             self.lossfcn = LossRelu()
         elif self.reg_methode == 'vanilla':
-            self.lossfcn = LossVanilla()
+            self.lossfcn = LossVanilla(self.curriculum_learning)
         else:
             raise 'undefined regularization method!'
 

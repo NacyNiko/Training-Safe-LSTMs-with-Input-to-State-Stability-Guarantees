@@ -9,11 +9,11 @@ from utilities import cal_constraints
 
 
 class LossFcn(nn.Module):
-    def __init__(self, curriculum):
+    def __init__(self):
         super(LossFcn, self).__init__()
         self.cons = None
         self.threshold = None
-        self.curriculum = curriculum
+
 
     def forward(self, cons, threshold):
         pass
@@ -31,8 +31,9 @@ class LossRelu(LossFcn):
 
 
 class LossVanilla(LossFcn):
-    def __init__(self):
+    def __init__(self, curriculum):
         super(LossVanilla, self).__init__()
+        self.curriculum = curriculum
 
     def forward(self, cons, threshold):
         self.cons = cons
