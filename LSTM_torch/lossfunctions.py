@@ -39,10 +39,10 @@ class LossVanilla(LossFcn):
         self.cons = cons
         self.threshold = threshold
         con1, con2 = self.cons[0], self.cons[1]
-        if self.curriculum == 'PID':
-            return None, (-con1 + self.threshold[0], -con2 + self.threshold[1])
-        else:
-            return None, (con1 + self.threshold[0], con2 + self.threshold[1])
+        # if self.curriculum == 'PID':
+        return None, (-con1 + self.threshold[0], -con2 + self.threshold[1])
+        # else:
+        #     return None, (con1 + self.threshold[0], con2 + self.threshold[1])
 
 
 

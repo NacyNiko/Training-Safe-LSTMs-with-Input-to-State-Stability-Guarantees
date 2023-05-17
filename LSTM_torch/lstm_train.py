@@ -38,10 +38,10 @@ class IssLstmTrainer:
 
         self.gamma1 = args.gamma[0]
         self.gamma2 = args.gamma[1]
-        if self.curriculum_learning == 'PID':
-            self.threshold = -args.threshold
-        else:
-            self.threshold = args.threshold
+        # if self.curriculum_learning == 'PID':
+        #     self.threshold = -args.threshold
+        # else:
+        self.threshold = args.threshold
         self.lossfcn = None
         self.regularizer = None
         self.dynamic_k = args.dynamic_K

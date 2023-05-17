@@ -31,7 +31,7 @@ parser.add_argument('--dynamic_K', default=False, type=bool)
 parser.add_argument('--PID_coefficient', default=([5, 10], [0.01, 0.2], [0., 0.]), type=tuple)
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([1., 1.]), help='value of gamma', type=torch.Tensor)
-parser.add_argument('--threshold', default=torch.tensor([0.005, 0.01]), help='value of threshold', type=torch.Tensor)
+parser.add_argument('--threshold', default=torch.tensor([-0.005, -0.01]), help='value of threshold', type=torch.Tensor)
 
 
 if __name__ == '__main__':
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     #     validation.main(parser.parse_args(), piecewise=True)
     for cl, rm, dy in [('PID', 'vanilla', True)]:
         # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
-        for dataset in ['pHdata', 'robot_forward']:
+        for dataset in ['robot_forward']:
             if dataset == 'pHdata':
                 hs = 5
                 l = 1
