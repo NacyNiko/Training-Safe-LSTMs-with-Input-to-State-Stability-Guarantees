@@ -149,8 +149,8 @@ class IssLstmTrainer:
                     k_list = pd.concat([k_list, pd.DataFrame(dynamic_k.cpu().detach().numpy().reshape(1, -1))], axis=0)
                     self.regularizer = PIDRegularizer(dynamic_k)
 
-                relu_loss_fcn = LossRelu()
-                _, relu_loss = relu_loss_fcn(constraints, self.threshold)
+                # relu_loss_fcn = LossRelu()
+                # _, relu_loss = relu_loss_fcn(constraints, self.threshold)
 
                 if self.curriculum_learning is None:
                     gamma1, gamma2 = self.gamma1, self.gamma2
@@ -198,7 +198,7 @@ class IssLstmTrainer:
                     print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                     print("The loss changes no more")
                     break
-                elif (epoch + 1) % 20 == 0:
+                elif (epoch + 1) % 10 == 0:
                     print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                 loss_prev = loss.item()
                 # accumulative_reg_loss[0] += reg_loss[0].item()
