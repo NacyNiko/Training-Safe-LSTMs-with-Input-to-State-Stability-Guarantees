@@ -26,7 +26,7 @@ class PIDRegularizer(Regularizer):
         self.gamma = [0, 0]
 
     def forward(self, loss, reg_loss):
-        self.reg_loss = reg_loss
+        self.reg_loss = - reg_loss
         self.loss = loss
         for i in range(2):
             self.gamma[i] = self.Kp[i] * self.reg_loss[i].item() + \
