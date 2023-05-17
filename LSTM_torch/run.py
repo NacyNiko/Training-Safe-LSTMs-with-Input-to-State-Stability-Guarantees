@@ -67,30 +67,9 @@ if __name__ == '__main__':
     #     validation.main(parser.parse_args(), piecewise=True)
     for cl, rm in [('PID', 'vanilla')]:
         # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
-        if cl == 'PID':
-            for dy in [False, True]:
-                for dataset in ['pHdata', 'robot_forward']:
-                    if dataset == 'pHdata':
-                        hs = 5
-                        l = 1
-                        size_i = 1
-                        size_o = 1
-                        ls = 10
-                        ep = 100
-                        bs = 64
-                    else:
-
-                        hs = 250
-                        l = 1
-                        size_i = 6
-                        size_o = 6
-                        ls = 40
-                        ep = 100
-                        bs = 128
-        else:
-            dy = False
-            for dataset in ['pHdata', 'robot_forward']:
-                if dataset == 'pHdata':
+        for dataset in ['pHdata', 'robot_forward']:
+            if dataset == 'pHdata':
+                for dy in [False, True]:
                     hs = 5
                     l = 1
                     size_i = 1
@@ -98,8 +77,8 @@ if __name__ == '__main__':
                     ls = 10
                     ep = 100
                     bs = 64
-                else:
-
+            else:
+                for dy in [False, True]:
                     hs = 250
                     l = 1
                     size_i = 6
