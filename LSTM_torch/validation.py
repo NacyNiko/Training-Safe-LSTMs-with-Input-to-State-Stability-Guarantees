@@ -102,8 +102,6 @@ class Validator:
                             batch = batch.transpose(0, 1)
                             batch = batch.to(torch.float32).to(self.device)
 
-                            # if j > 0:
-                            #     diff_ = (batch[-1, :, :self.output_size] - output) / batch[-1, :, :self.output_size]
                             if j <= z * self.seq_len:
                                 previous_y = batch[:, :, :self.output_size]
 
@@ -349,12 +347,22 @@ class Validator:
                     ax[j].legend(loc='best')
                     ax[j].set_title('NRMSE on {} set: {:.3f}, R2: {}'.format('train' if n else 'val', float(fit_score), float(r2)))
                     j += 1
-                if z == 10:
-                    plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], 'forcast', 'train' if n else 'val'),
-                                bbox_inches='tight',
-                                dpi=500)
-                else:
-                    plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], horizon_window, 'train' if n else 'val'),
+
+                    if j == 2 and z == 50:
+                        fig_, ax_ = plt.subplots(1, 1)
+                        ax_.plot(data_y[:z * self.seq_len+horizon_window], color='c', label='real', linestyle='--', alpha=0.5)
+                        ax_.plot(range(z * self.seq_len, z * self.seq_len+horizon_window), predictions[z * self.seq_len:z * self.seq_len+horizon_window], color='m', label='pred', alpha=0.8)
+                        ax_.tick_params(labelsize=5)
+                        ax_.legend(loc='best')
+                        ax_.set_title(
+                            'Prediction result on {} set with h={}'.format(self.dataset, horizon_window ))
+                        ax_.set_xlabel('Time', fontsize=15)
+                        ax_.set_ylabel('pH', fontsize=15)
+                        plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], horizon_window, 'prediction'),
+                                    bbox_inches='tight',
+                                    dpi=500)
+
+                plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], horizon_window, 'train' if n else 'val'),
                             bbox_inches='tight',
                             dpi=500)
 
@@ -377,9 +385,8 @@ class Validator:
         return c[0], c[1]
 
 
-def main(args, piecewise=False):   # if_filter: ignore whether gamma=0 or threshold=0
+def main(args, piecewise=False):
     validator = Validator(args, device='cuda')
-    # validator = Validator([*range(11)], [*range(11)], device='cuda')
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model()
     file = 'models/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning, args.reg_methode)
@@ -389,7 +396,7 @@ def main(args, piecewise=False):   # if_filter: ignore whether gamma=0 or thresh
     save_jpgs = os.listdir('results/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning
                                                                  , args.reg_methode))
 
-    for hw in [1, 15, 30, 45, 60]:
+    for hw in [60]:  # 1, 15, 30, 45,
         for model in models:
             temp1 = model[:-4] + f'_{hw}_val.jpg'
             temp2 = model[:-4] + f'_{hw}_train.jpg'
@@ -399,9 +406,9 @@ def main(args, piecewise=False):   # if_filter: ignore whether gamma=0 or thresh
                 if not piecewise:
                     validator.evaluate(lstmmodel, path, data_train, data_val, z=2, save_plot=True)
                 else:
-                    validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, z=2,save_plot=True, horizon_window=hw)
+                    validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, z=2, save_plot=True, horizon_window=hw)
                     # if hw == 60:
-                    #     validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, z=10,save_plot=True, horizon_window=hw)
+                    #     validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, z=50,save_plot=True, horizon_window=hw)
 
     print('-------------Finish---------------------')
 
