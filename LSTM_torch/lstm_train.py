@@ -65,7 +65,7 @@ class IssLstmTrainer:
         stat_x[1] = stat_x[1].to(device)
         stat_y[0] = stat_y[0].to(device)
         stat_y[1] = stat_y[1].to(device)
-        self.window = len(train_x[:, 0]) // 200
+        self.window = len(train_x[:, 0]) // 500
         self.loss_saver = SaveLoss(self.threshold, window=self.window)
         train_set = GetLoader(train_x, train_y, seq_len=self.seq_len, train=True)
         train_set = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=2)
