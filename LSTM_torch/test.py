@@ -34,4 +34,4 @@ def plot_C(dataset, cur, mat):
         plt.show()
 
 
-plot_C('robot_forward', 'exp', 'vanilla')
+plot_C('pHdata', 'PID', 'vanilla')
