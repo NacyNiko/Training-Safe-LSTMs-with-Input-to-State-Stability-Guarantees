@@ -104,9 +104,9 @@ class ExpRegularizer(Regularizer):
         temp = []
         for i in range(2):
             if self.reg_loss[i] < 0:
-                gamma = -torch.exp(max(self.reg_loss[i].detach(), -torch.tensor(5)))
+                gamma = -torch.exp(max(self.reg_loss[i].detach(), -torch.tensor(6)))
             else:
-                gamma = torch.exp(min(self.reg_loss[i].detach(), torch.tensor(5)))
+                gamma = torch.exp(min(self.reg_loss[i].detach(), torch.tensor(6)))
             temp.append(gamma)
         gamma1, gamma2 = temp
         return gamma1, gamma2
