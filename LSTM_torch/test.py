@@ -14,13 +14,12 @@ import numpy as np
 #     K_df = pd.read_csv(f)
 
 
-
-
 def plot_C(dataset, cur, mat):
     with open('statistic/{}/{}/weights_{}_{}.pkl'.format(dataset
             , 'hs_5_ls_1_sl_10' if dataset == 'pHdata' else 'hs_250_ls_1_sl_40', mat, cur), 'rb') as f:
         df = pickle.load(f)
-        df = df.rolling(window=5).min()
+        df = df.iloc[4000:5000, :]
+        df = df.rolling(window=50).mean()
 
         for x in ['c1', 'c2']:
             fig, ax = plt.subplots(1, 1)
@@ -33,4 +32,5 @@ def plot_C(dataset, cur, mat):
             ax.set_title('{} of {} strategy'.format('C1' if x == 'c1' else 'C2', 'Exponential' if cur == 'exp' else 'PID'))
             plt.show()
 
-plot_C('robot_forward', 'PID', 'vanilla')
+
+plot_C('robot_forward', 'balance', 'relu')
