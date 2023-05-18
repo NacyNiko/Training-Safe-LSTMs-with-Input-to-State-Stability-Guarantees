@@ -18,7 +18,7 @@ def plot_C(dataset, cur, mat):
     with open('statistic/{}/{}/weights_{}_{}.pkl'.format(dataset
             , 'hs_5_ls_1_sl_10' if dataset == 'pHdata' else 'hs_250_ls_1_sl_40', mat, cur), 'rb') as f:
         df = pickle.load(f)
-        df = df.iloc[4000:5000, :]
+        df = df.iloc[:, :]
         df = df.rolling(window=50).mean()
 
         for x in ['c1', 'c2']:
