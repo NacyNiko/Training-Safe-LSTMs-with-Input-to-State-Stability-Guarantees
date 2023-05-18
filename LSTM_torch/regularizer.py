@@ -122,7 +122,7 @@ class BlaRegularizer(Regularizer):
         temp = []
         for i in range(2):
             if self.reg_loss[i].detach() > 0:
-                gamma = self.loss.detach() / self.reg_loss[i].detach()
+                gamma = self.loss.detach() * self.reg_loss[i].detach() / (self.reg_loss[0].detach() + self.reg_loss[1].detach())
             else:
                 gamma = 0
             temp.append(gamma)
