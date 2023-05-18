@@ -99,6 +99,6 @@ if __name__ == '__main__':
             args.batch_size = bs
             args.dynamic_K = dy
 
-            lstm_train.main(args)
+            # lstm_train.main(args)
             validation.main(args, piecewise=True)
 
