@@ -38,8 +38,8 @@ parser.add_argument('--threshold', default=torch.tensor([0.05, 0.1]), help='valu
 if __name__ == '__main__':
     grid_Search = True
     if grid_Search:
-        threshold_values = [x for x in np.linspace(0, 2, 10)]
-        gamma_values = [x for x in range(0, 10)]
+        threshold_values = [round(x, 3) for x in np.linspace(0, 2, 10)]
+        gamma_values = [int(x) for x in np.linspace(0, 10, 5)]
         for threshold in threshold_values:
             for gamma in gamma_values:
                 print('threshold:{}, gamma:{}'.format(threshold, gamma))
