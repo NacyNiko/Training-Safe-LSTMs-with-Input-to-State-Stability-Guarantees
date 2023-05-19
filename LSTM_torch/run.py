@@ -36,7 +36,7 @@ parser.add_argument('--threshold', default=torch.tensor([0., 0.]), help='value o
 
 
 if __name__ == '__main__':
-    grid_Search = False
+    grid_Search = True
     if grid_Search:
         threshold_values = [0]
         gamma_values = [x for x in np.linspace(0, 20, 10)]
