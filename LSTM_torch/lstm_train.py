@@ -134,7 +134,7 @@ class IssLstmTrainer:
                 # calculate loss
                 constraints, weight_save = cal_constraints(self.hidden_size, lstm_model.lstm.parameters(), df=weight_save)
                 if constraints[0] < 0 and constraints[1] < 0:
-                    print(times)
+                    print(f'gamma: {self.gamma1} constraint converge time:{times}')
                     break_flag = True
                     break
                 _, reg_loss = self.lossfcn.forward(constraints, self.threshold)
