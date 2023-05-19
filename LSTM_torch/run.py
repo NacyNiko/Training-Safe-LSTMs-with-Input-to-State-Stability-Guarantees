@@ -47,7 +47,7 @@ if __name__ == '__main__':
         #         args.threshold = torch.tensor([threshold, threshold])
         #         args.gamma = torch.tensor([gamma, gamma])
 
-        hidden_values = [30]
+        hidden_values = [300]
         len_sequence_values = [40]
         for hs in hidden_values:
             for ls in len_sequence_values:
