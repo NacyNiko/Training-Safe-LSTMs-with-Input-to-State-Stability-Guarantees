@@ -22,7 +22,7 @@ parser.add_argument('--layers', default=1, help='number of layers of LSTM', type
 parser.add_argument('--batch_size', default=128, help='train batch size', type=int)
 parser.add_argument('--epochs', default=300, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=-1e-3, help='minimum tolerance of loss', type=float)
-parser.add_argument('--tol_stop', default=0.001, help='minimum tolerance between 2 epochs', type=float)
+parser.add_argument('--tol_stop', default=-0.001, help='minimum tolerance between 2 epochs', type=float)
 parser.add_argument('--len_sequence', default=40, help='length of input sequence to LSTM', type=int)
 
 parser.add_argument(
