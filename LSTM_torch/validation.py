@@ -189,8 +189,8 @@ class Validator:
         pre_batches = []
         if save_plot:
             if self.output_size > 1:
-                fit_score_t, r2_t = 0, 0
                 for n in [True, False]:
+                    fit_score_t, r2_t = 0, 0
                     hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
                               , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
                     plt.close()
@@ -396,8 +396,8 @@ def main(args, piecewise=False):
     save_jpgs = os.listdir('results/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning
                                                                  , args.reg_methode))
 
-    for hw in [1, 15, 30, 45, 60]:  # ,
-        for model in models:
+    for model in models:
+        for hw in [60]:  # ,
             temp1 = model[:-4] + f'_{hw}_val.jpg'
             temp2 = model[:-4] + f'_{hw}_train.jpg'
             if not (temp1 in save_jpgs or temp2 in save_jpgs):

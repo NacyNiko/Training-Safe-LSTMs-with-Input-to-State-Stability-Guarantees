@@ -20,7 +20,7 @@ parser.add_argument('--input_size', default=6, help='input size of LSTM', type=i
 parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
 parser.add_argument('--layers', default=2, help='number of layers of LSTM', type=int)
 parser.add_argument('--batch_size', default=128, help='train batch size', type=int)
-parser.add_argument('--epochs', default=120, help='maximum train epochs', type=int)
+parser.add_argument('--epochs', default=300, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=-1e-3, help='minimum tolerance of loss', type=float)
 parser.add_argument('--tol_stop', default=-0.1, help='minimum tolerance between 2 epochs', type=float)
 parser.add_argument('--len_sequence', default=40, help='length of input sequence to LSTM', type=int)
@@ -47,7 +47,7 @@ if __name__ == '__main__':
         #         args.threshold = torch.tensor([threshold, threshold])
         #         args.gamma = torch.tensor([gamma, gamma])
 
-        hidden_values = [100, 150, 200]
+        hidden_values = [30]
         len_sequence_values = [40]
         for hs in hidden_values:
             for ls in len_sequence_values:
