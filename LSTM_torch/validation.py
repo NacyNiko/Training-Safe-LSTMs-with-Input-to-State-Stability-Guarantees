@@ -18,7 +18,7 @@ from sklearn.metrics import r2_score
 
 
 class Validator:
-    def __init__(self, args, device='cpu', recoder=False):
+    def __init__(self, args, device='cpu', if_recoder=False):
         self.dataset = args.dataset
         self.input_size = args.input_size
         self.hidden_size = args.hidden_size
@@ -31,13 +31,14 @@ class Validator:
         self.dynamic_K = args.dynamic_K
         self.gamma = args.gamma[0]
         self.thd = args.threshold[0]
+        self.if_record = if_recoder
 
-        if recoder:
+        if if_recoder:
             if os.path.exists(r'./statistic/{}/record.csv'.format(self.dataset)):
                 self.record = pd.read_csv(r'./statistic/{}/record.csv'.format(self.dataset))
 
             else:
-                self.record = pd.DataFrame({'gamma': [0], 'thd': [0], 'NRMSE': [0], 'c1': [0], 'c2': [0]})
+                self.record = pd.DataFrame({'gamma': [0], 'thd': [0], 'NRMSE': [0], 'r2': [0], 'c1': [0], 'c2': [0]})
 
     def load_data(self):
         data_t = [r'../data/{}/train/train_input.csv'.format(self.dataset)
@@ -367,17 +368,8 @@ class Validator:
                             bbox_inches='tight',
                             dpi=500)
 
-        # # record
-        # g, t = path.split('_')[-3][-2], path.split('_')[-1][-6]
-        # if len(path.split('_')[-3]) > 5:
-        #     g = path.split('_')[-3][-3:-1]
-        # if len(path.split('_')[-1]) > 9:
-        #     t = path.split('_')[-1][-7:-5]
-        #
-        # dic = {'gamma': [float(g)], 'thd': [float(t)], 'NRMSE': [float(fit_score)], 'c1': [float(c1)], 'c2': [float(c2)]}
-        # temp = pd.DataFrame(dic)
-        # self.record = pd.concat([self.record, temp], axis=0)
-        # self.record.to_csv(r'./statistic/{}/record.csv'.format(self.dataset))
+                if self.if_record:
+                    self.record_gamma_tau(path, nrmse=fit_score, r2=r2, c1=c1, c2=c2)
 
     def evaluate_constraint(self, model):
         parameters = model.lstm.parameters()
@@ -395,11 +387,11 @@ class Validator:
         dic = {'gamma': [float(g)], 'thd': [float(t)], 'NRMSE': [float(nrmse)], 'r2': [float(r2)],'c1': [float(c1)], 'c2': [float(c2)]}
         temp = pd.DataFrame(dic)
         self.record = pd.concat([self.record, temp], axis=0)
-        self.record.to_csv(r'./statistic/{}/record.csv'.format(self.dataset))
+        self.record.to_csv(r'./statistic/{}/record.csv'.format(self.dataset), index=False)
 
 
-def main(args, piecewise=False):
-    validator = Validator(args, device='cuda', recoder=False)
+def main(args, if_recoder, piecewise=False):
+    validator = Validator(args, device='cuda', if_recoder=if_recoder)
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model()
     file = 'models/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning, args.reg_methode)
@@ -410,7 +402,7 @@ def main(args, piecewise=False):
                                                                  , args.reg_methode))
 
     for model in models:
-        for hw in [1, 15, 30, 45, 60]:
+        for hw in [60]:
             temp1 = model[:-4] + f'_{hw}_val.jpg'
             temp2 = model[:-4] + f'_{hw}_train.jpg'
             if not (temp1 in save_jpgs or temp2 in save_jpgs):
