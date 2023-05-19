@@ -19,7 +19,7 @@ def plot_C(dataset, cur, mat):
             , 'hs_5_ls_1_sl_10' if dataset == 'pHdata' else 'hs_250_ls_1_sl_40', mat, cur), 'rb') as f:
         df = pickle.load(f)
         df = df.iloc[:, :]
-        df = df.rolling(window=1).mean()
+        df = df.rolling(window=50).mean()
 
         fig, ax = plt.subplots(5, 1)
         for i, k in enumerate(['c1','c2','reg_loss1','reg_loss2','loss_']):
@@ -34,4 +34,4 @@ def plot_C(dataset, cur, mat):
         plt.show()
 
 
-plot_C('pHdata', 'PID', 'vanilla')
+plot_C('pHdata', 'exp', 'vanilla')
