@@ -45,14 +45,14 @@ class IssLstmTrainer:
         self.K_pid = args.PID_coefficient
         self.window = None
         self.loss_saver = None
-        # print(self.dynamic_k)
+        print(self.dynamic_k)
 
     def train_begin(self):
         device = self.device if torch.cuda.is_available() else 'cpu'
-        # if device == 'cuda:0':
-        #     print('Training on GPU.')
-        # else:
-        #     print('No GPU available, training on CPU.')
+        if device == 'cuda:0':
+            print('Training on GPU.')
+        else:
+            print('No GPU available, training on CPU.')
 
         #  data set
         data = [r'../data/{}/train/train_input.csv'.format(self.dataset)
@@ -83,8 +83,8 @@ class IssLstmTrainer:
         lstm_model.to(device)
         Pid_NN.to(device)
         criterion.to(device)
-        # print('LSTM model:', lstm_model)
-        # print('model.parameters:', lstm_model.parameters)
+        print('LSTM model:', lstm_model)
+        print('model.parameters:', lstm_model.parameters)
         break_flag = False
         loss_prev = None
         gamma1 = self.gamma1
@@ -133,10 +133,6 @@ class IssLstmTrainer:
 
                 # calculate loss
                 constraints, weight_save = cal_constraints(self.hidden_size, lstm_model.lstm.parameters(), df=weight_save)
-                if constraints[0] < 0 and constraints[1] < 0:
-                    print(f'gamma: {self.gamma1} constraint converge time:{times}')
-                    break_flag = True
-                    break
                 _, reg_loss = self.lossfcn.forward(constraints, self.threshold)
 
                 output, _ = lstm_model(batch_cases)
@@ -199,7 +195,7 @@ class IssLstmTrainer:
                     print('Epoch [{}/{}], Loss: {:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                     print("The loss changes no more")
                     break
-                elif (epoch + 1) % 100 == 0:
+                elif (epoch + 1) % 10 == 0:
                     print('Epoch: [{}/{}], Loss:{:.5f}'.format(epoch + 1, self.max_epochs, loss.item()))
                 loss_prev = loss.item()
                 # accumulative_reg_loss[0] += reg_loss[0].item()
@@ -209,7 +205,7 @@ class IssLstmTrainer:
             if break_flag:
                 break
             times += time.time() - start
-        # print(f'mean epoch time:{times/self.max_epochs}')
+        print(f'mean epoch time:{times/self.max_epochs}')
         """ save model """
         self.save_model(self.reg_methode, self.curriculum_learning, lstm_model, [gamma1, gamma2], times, thd=self.threshold)
 
