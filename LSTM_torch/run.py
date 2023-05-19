@@ -21,7 +21,7 @@ parser.add_argument('--input_size', default=1, help='input size of LSTM', type=i
 parser.add_argument('--output_size', default=1, help='output size of output layer', type=int)
 parser.add_argument('--layers', default=1, help='number of layers of LSTM', type=int)
 parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
-parser.add_argument('--epochs', default=30, help='maximum train epochs', type=int)
+parser.add_argument('--epochs', default=80, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=-1e-3, help='minimum tolerance of loss', type=float)
 parser.add_argument('--tol_stop', default=-0.001, help='minimum tolerance between 2 epochs', type=float)
 parser.add_argument('--len_sequence', default=10, help='length of input sequence to LSTM', type=int)
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     grid_Search = True
     if grid_Search:
         threshold_values = [round(x, 3) for x in np.linspace(0, 2, 10)]
-        gamma_values = [int(x) for x in np.linspace(0, 10, 5)]
+        gamma_values = [x for x in np.linspace(0, 5, 10)]
         for threshold in threshold_values:
             for gamma in gamma_values:
                 print('threshold:{}, gamma:{}'.format(threshold, gamma))
