@@ -18,7 +18,7 @@ from sklearn.metrics import r2_score
 
 
 class Validator:
-    def __init__(self, args, device='cpu'):
+    def __init__(self, args, device='cpu', recoder=False):
         self.dataset = args.dataset
         self.input_size = args.input_size
         self.hidden_size = args.hidden_size
@@ -32,11 +32,12 @@ class Validator:
         self.gamma = args.gamma[0]
         self.thd = args.threshold[0]
 
-        # if os.path.exists(r'./statistic/{}/record.csv'.format(self.dataset)):
-        #     self.record = pd.read_csv(r'./statistic/{}/record.csv'.format(self.dataset))
-        #
-        # else:
-        #     self.record = pd.DataFrame({'gamma': [0], 'thd': [0], 'NRMSE': [0], 'c1': [0], 'c2': [0]})
+        if recoder:
+            if os.path.exists(r'./statistic/{}/record.csv'.format(self.dataset)):
+                self.record = pd.read_csv(r'./statistic/{}/record.csv'.format(self.dataset))
+
+            else:
+                self.record = pd.DataFrame({'gamma': [0], 'thd': [0], 'NRMSE': [0], 'c1': [0], 'c2': [0]})
 
     def load_data(self):
         data_t = [r'../data/{}/train/train_input.csv'.format(self.dataset)
@@ -378,15 +379,27 @@ class Validator:
         # self.record = pd.concat([self.record, temp], axis=0)
         # self.record.to_csv(r'./statistic/{}/record.csv'.format(self.dataset))
 
-
     def evaluate_constraint(self, model):
         parameters = model.lstm.parameters()
         c, _ = cal_constraints(self.hidden_size, parameters)
         return c[0], c[1]
 
+    def record_gamma_tau(self, path, nrmse, r2, c1, c2):
+        # record
+        g, t = path.split('_')[-3][-2], path.split('_')[-1][-6]
+        if len(path.split('_')[-3]) > 5:
+            g = path.split('_')[-3][-3:-1]
+        if len(path.split('_')[-1]) > 9:
+            t = path.split('_')[-1][-7:-5]
+
+        dic = {'gamma': [float(g)], 'thd': [float(t)], 'NRMSE': [float(nrmse)], 'r2': [float(r2)],'c1': [float(c1)], 'c2': [float(c2)]}
+        temp = pd.DataFrame(dic)
+        self.record = pd.concat([self.record, temp], axis=0)
+        self.record.to_csv(r'./statistic/{}/record.csv'.format(self.dataset))
+
 
 def main(args, piecewise=False):
-    validator = Validator(args, device='cuda')
+    validator = Validator(args, device='cuda', recoder=False)
     data_train, data_val = validator.load_data()
     lstmmodel = validator.create_model()
     file = 'models/{}/curriculum_{}/{}/'.format(args.dataset, args.curriculum_learning, args.reg_methode)
