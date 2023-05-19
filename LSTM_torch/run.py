@@ -20,11 +20,11 @@ parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM', type
 parser.add_argument('--input_size', default=1, help='input size of LSTM', type=int)
 parser.add_argument('--output_size', default=1, help='output size of output layer', type=int)
 parser.add_argument('--layers', default=1, help='number of layers of LSTM', type=int)
-parser.add_argument('--batch_size', default=128, help='train batch size', type=int)
-parser.add_argument('--epochs', default=50, help='maximum train epochs', type=int)
+parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
+parser.add_argument('--epochs', default=30, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=-1e-3, help='minimum tolerance of loss', type=float)
 parser.add_argument('--tol_stop', default=-0.001, help='minimum tolerance between 2 epochs', type=float)
-parser.add_argument('--len_sequence', default=40, help='length of input sequence to LSTM', type=int)
+parser.add_argument('--len_sequence', default=10, help='length of input sequence to LSTM', type=int)
 
 parser.add_argument(
     '--curriculum_learning', default=None, choices=[None, '2part', '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
@@ -62,7 +62,7 @@ if __name__ == '__main__':
                 validation.main(args, if_recoder=True, piecewise=True)
     else:
         start = time.time()
-        lstm_train.main(parser.parse_args())
+        # lstm_train.main(parser.parse_args())
         end = time.time()
         print(f'total times:{-start+end}')
         validation.main(parser.parse_args(), if_recoder=False, piecewise=True)

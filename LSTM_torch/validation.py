@@ -43,10 +43,10 @@ class Validator:
     def load_data(self):
         data_t = [r'../data/{}/train/train_input.csv'.format(self.dataset)
                        , r'../data/{}/train/train_output.csv'.format(self.dataset)]
-        data_v = [r'../data/{}/val/val_input.csv'.format(self.dataset)
-                       , r'../data/{}/val/val_output.csv'.format(self.dataset)]
-        # data_v = [r'../data/{}/test/test_input.csv'.format(self.dataset)
-        #                , r'../data/{}/test/test_output.csv'.format(self.dataset)]
+        # data_v = [r'../data/{}/val/val_input.csv'.format(self.dataset)
+        #                , r'../data/{}/val/val_output.csv'.format(self.dataset)]
+        data_v = [r'../data/{}/test/test_input.csv'.format(self.dataset)
+                       , r'../data/{}/test/test_output.csv'.format(self.dataset)]
         return data_t, data_v
 
     @staticmethod
