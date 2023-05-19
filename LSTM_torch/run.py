@@ -77,12 +77,12 @@ if __name__ == '__main__':
                 ep = 100
                 bs = 64
             else:
-                hs = 20
-                l = 2
+                hs = 250
+                l = 1
                 size_i = 6
                 size_o = 6
                 ls = 40
-                ep = 50
+                ep = 30
                 bs = 128
 
             print(f'training start on: {dataset} with cl: {cl}, rm: {rm}')
