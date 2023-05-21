@@ -125,7 +125,7 @@ class IssLstmTrainer:
         # results = torch.empty(1, 1).to(device)
         times = 0
         for epoch in range(self.max_epochs):
-            # print(epoch)
+            print(epoch)
             start = time.time()
             for batch_cases, labels in train_set:
                 batch_cases = batch_cases.transpose(0, 1).to(torch.float32).to(device) # [batch size, seq len, feature]

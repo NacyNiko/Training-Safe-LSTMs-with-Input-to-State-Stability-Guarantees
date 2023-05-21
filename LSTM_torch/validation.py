@@ -196,7 +196,7 @@ class Validator:
                     hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
                               , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
                     plt.close()
-                    f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
+                    f, ax = plt.subplots(self.output_size, 1, figsize=(40, 10))
 
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                                  self.input_size, self.output_size,
@@ -258,16 +258,20 @@ class Validator:
 
                     i = 0
                     predictions = predictions.cpu()
-                    while i < self.output_size:  # z * self.seq_len + 2000
+                    while i < self.output_size:
                         fit_score = self.nrmse(data_y[z * self.seq_len:, i]
                                                , predictions[1 + z * self.seq_len:, i].clone().detach())
                         r2 = r2_score(data_y[z * self.seq_len:, i]
                                       , predictions[1 + z * self.seq_len:, i].clone().detach())
                         fit_score_t += fit_score
                         r2_t += r2
-
                         ax[i].plot(predictions[1 + z * self.seq_len:, i], color='m', label='pred', alpha=0.8)
                         ax[i].plot(data_y[z * self.seq_len:, i], color='c', label='real', linestyle='--', alpha=0.5)
+                        # ax[i].plot(range(z*self.seq_len, z*self.seq_len+horizon_window)
+                        #            , predictions[1+ z * self.seq_len:1 + z * self.seq_len + horizon_window, i], color='m', label='pred', alpha=0.8)
+                        # ax[i].plot(data_y[:z * self.seq_len+horizon_window, i], color='c', label='real', linestyle='--', alpha=0.5)
+                        # if z == 5:
+                        #     ax[i].plot(range((z-1)*self.seq_len, z*self.seq_len+1), data_y[(z-1)*self.seq_len: z*self.seq_len+1])
                         ax[i].tick_params(labelsize=5)
                         ax[i].legend(loc='best')
                         ax[i].set_title('NRMSE on {} set: {:.3f}, R2: {}'.format(n, fit_score, r2), fontsize=8)
@@ -281,7 +285,7 @@ class Validator:
                 plt.close()
                 fig, ax = plt.subplots(2, 1)
                 j = 0
-                for n in [True, False]:
+                for n in [False]:
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                                  self.input_size, self.output_size,
                                                                  train=n).creat_new_dataset(seq_len=self.seq_len)
@@ -350,16 +354,20 @@ class Validator:
                     ax[j].set_title('NRMSE on {} set: {:.3f}, R2: {}'.format('train' if n else 'val', float(fit_score), float(r2)))
                     j += 1
 
-                    if j == 2 and z == 50:
-                        fig_, ax_ = plt.subplots(1, 1)
-                        ax_.plot(data_y[:z * self.seq_len+horizon_window], color='c', label='real', linestyle='--', alpha=0.5)
-                        ax_.plot(range(z * self.seq_len, z * self.seq_len+horizon_window), predictions[z * self.seq_len:z * self.seq_len+horizon_window], color='m', label='pred', alpha=0.8)
+                    if z == 50:
+                        fig_, ax_ = plt.subplots(1, 1, figsize=(12, 3))
+                        ax_.plot(data_y[:z * self.seq_len+horizon_window], color='c', label='real trajectory', linestyle='--', alpha=0.6)
+                        ax_.plot(range((z-1) * self.seq_len, z * self.seq_len+1)
+                                 , data_y[(z-1) * self.seq_len:z * self.seq_len+1], color='darkorange', label='input sequence', alpha=1)
+                        ax_.plot(range(z * self.seq_len, z * self.seq_len+horizon_window)
+                                 , predictions[z * self.seq_len:z * self.seq_len+horizon_window], color='m', label='prediction trajectory', alpha=0.8)
                         ax_.tick_params(labelsize=5)
                         ax_.legend(loc='best')
-                        ax_.set_title(
-                            'Prediction result on {} set with h={}'.format(self.dataset, horizon_window ))
+                        # ax_.set_title(
+                            # 'Prediction result on {} set with h={}'.format(self.dataset, horizon_window ))
                         ax_.set_xlabel('Time', fontsize=15)
                         ax_.set_ylabel('pH', fontsize=15)
+                        ax_.tick_params(axis='both', labelsize=14)
                         plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], horizon_window, 'prediction'),
                                     bbox_inches='tight',
                                     dpi=500)
@@ -402,18 +410,16 @@ def main(args, if_recoder, piecewise=False):
                                                                  , args.reg_methode))
 
     for model in models:
-        for hw in [60]:
+        for hw in [1, 15, 30, 45, 60]:
             temp1 = model[:-4] + f'_{hw}_val.jpg'
             temp2 = model[:-4] + f'_{hw}_train.jpg'
             if not (temp1 in save_jpgs or temp2 in save_jpgs):
                 path = file + model
                 lstmmodel = validator.load_model(lstmmodel, path)
                 if not piecewise:
-                    validator.evaluate(lstmmodel, path, data_train, data_val, z=2, save_plot=True)
+                    validator.evaluate(lstmmodel, path, data_train, data_val, z=1, save_plot=True)
                 else:
-                    validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, z=2, save_plot=True, horizon_window=hw)
-                    # if hw == 60:
-                    #     validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, z=50,save_plot=True, horizon_window=hw)
+                    validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, z=1, save_plot=True, horizon_window=hw)
 
     print('-------------Finish---------------------')
 
