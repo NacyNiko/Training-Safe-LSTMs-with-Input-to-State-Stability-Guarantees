@@ -191,12 +191,12 @@ class Validator:
         pre_batches = []
         if save_plot:
             if self.output_size > 1:
-                for n in [True, False]:
+                for n in [False]:
                     fit_score_t, r2_t = 0, 0
                     hidden = (torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device)
                               , torch.zeros([self.num_layers, 1, self.hidden_size]).to(self.device))
                     plt.close()
-                    f, ax = plt.subplots(self.output_size, 1, figsize=(40, 10))
+                    f, ax = plt.subplots(self.output_size, 1, figsize=(30, 10) if n else (10, 10))
 
                     data_x, data_y, stat_x, stat_y = DataCreater(data_t[0], data_t[1], data_v[0], data_v[1],
                                                                  self.input_size, self.output_size,
@@ -419,7 +419,7 @@ def main(args, if_recoder, piecewise=False):
                 if not piecewise:
                     validator.evaluate(lstmmodel, path, data_train, data_val, z=1, save_plot=True)
                 else:
-                    validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, z=1, save_plot=True, horizon_window=hw)
+                    validator.evaluate_piecewise(lstmmodel, path, data_train, data_val, z=2, save_plot=True, horizon_window=hw)
 
     print('-------------Finish---------------------')
 
