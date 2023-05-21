@@ -32,75 +32,75 @@ parser.add_argument('--dynamic_K', default=False, type=bool)
 parser.add_argument('--PID_coefficient', default=([0.05, 0.1], [0.01, 0.001], [0., 0.]), type=tuple)
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([1., 1.]), help='value of gamma', type=torch.Tensor)
-parser.add_argument('--threshold', default=torch.tensor([0.05, 0.1]), help='value of threshold', type=torch.Tensor)
+parser.add_argument('--threshold', default=torch.tensor([-0.05, -0.1]), help='value of threshold', type=torch.Tensor)
 
 
 if __name__ == '__main__':
-    grid_Search = False
-    if grid_Search:
-        threshold_values = [0]
-        gamma_values = [x for x in np.linspace(0, 20, 10)]
-        for threshold in threshold_values:
-            for gamma in gamma_values:
-                print('threshold:{}, gamma:{}'.format(threshold, gamma))
-
-                args = parser.parse_args()
-                args.threshold = torch.tensor([threshold, threshold])
-                args.gamma = torch.tensor([gamma, gamma])
-
-        # hidden_values = [250]
-        # len_sequence_values = [40]
-        # for hs in hidden_values:
-        #     for ls in len_sequence_values:
-        #         print('hidden size:{}, seq length:{}'.format(hs, ls))
-        #
-        #         args = parser.parse_args()
-        #         args.hidden_size = hs
-        #         args.len_sequence = ls
-
-                lstm_train.main(args)
-                validation.main(args, if_recoder=True, piecewise=True)
-    else:
-        start = time.time()
-        lstm_train.main(parser.parse_args())
-        end = time.time()
-        print(f'total times:{-start+end}')
-        validation.main(parser.parse_args(), if_recoder=False, piecewise=True)
-
-    # for cl, rm, dy in [('exp', 'vanilla', False)]:
-    #     # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
-    #     for dataset in ['robot_forward']:
-    #         if dataset == 'pHdata':
-    #             hs = 5
-    #             l = 1
-    #             size_i = 1
-    #             size_o = 1
-    #             ls = 10
-    #             ep = 100
-    #             bs = 64
-    #         else:
-    #             hs = 250
-    #             l = 1
-    #             size_i = 6
-    #             size_o = 6
-    #             ls = 40
-    #             ep = 30
-    #             bs = 128
+    # grid_Search = False
+    # if grid_Search:
+    #     threshold_values = [0]
+    #     gamma_values = [x for x in np.linspace(0, 20, 10)]
+    #     for threshold in threshold_values:
+    #         for gamma in gamma_values:
+    #             print('threshold:{}, gamma:{}'.format(threshold, gamma))
     #
-    #         print(f'training start on: {dataset} with cl: {cl}, rm: {rm}')
-    #         args = parser.parse_args()
-    #         args.dataset = dataset
-    #         args.hidden_size = hs
-    #         args.len_sequence = ls
-    #         args.layers = l
-    #         args.input_size = size_i
-    #         args.output_size = size_o
-    #         args.curriculum_learning = cl
-    #         args.reg_methode = rm
-    #         args.epochs = ep
-    #         args.batch_size = bs
-    #         args.dynamic_K = dy
+    #             args = parser.parse_args()
+    #             args.threshold = torch.tensor([threshold, threshold])
+    #             args.gamma = torch.tensor([gamma, gamma])
     #
-    #         lstm_train.main(args)
-    #         validation.main(args, piecewise=True)
+    #     # hidden_values = [250]
+    #     # len_sequence_values = [40]
+    #     # for hs in hidden_values:
+    #     #     for ls in len_sequence_values:
+    #     #         print('hidden size:{}, seq length:{}'.format(hs, ls))
+    #     #
+    #     #         args = parser.parse_args()
+    #     #         args.hidden_size = hs
+    #     #         args.len_sequence = ls
+    #
+    #             lstm_train.main(args)
+    #             validation.main(args, if_recoder=True, piecewise=True)
+    # else:
+    #     start = time.time()
+    #     lstm_train.main(parser.parse_args())
+    #     end = time.time()
+    #     print(f'total times:{-start+end}')
+    #     validation.main(parser.parse_args(), if_recoder=False, piecewise=True)
+
+    for cl, rm, dy in [('pid', 'vanilla', False)]:
+        # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
+        for dataset in ['robot_forward']:
+            if dataset == 'pHdata':
+                hs = 5
+                l = 1
+                size_i = 1
+                size_o = 1
+                ls = 10
+                ep = 100
+                bs = 64
+            else:
+                hs = 250
+                l = 1
+                size_i = 6
+                size_o = 6
+                ls = 40
+                ep = 30
+                bs = 128
+
+            print(f'training start on: {dataset} with cl: {cl}, rm: {rm}')
+            args = parser.parse_args()
+            args.dataset = dataset
+            args.hidden_size = hs
+            args.len_sequence = ls
+            args.layers = l
+            args.input_size = size_i
+            args.output_size = size_o
+            args.curriculum_learning = cl
+            args.reg_methode = rm
+            args.epochs = ep
+            args.batch_size = bs
+            args.dynamic_K = dy
+
+            lstm_train.main(args)
+            validation.main(args, piecewise=True)
 
