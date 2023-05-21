@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     for cl, rm, dy in [('PID', 'vanilla', False)]:
         # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
-        for dataset in ['pHdata', 'robot_forward']:
+        for dataset in ['robot_forward']:
             if dataset == 'pHdata':
                 hs = 5
                 l = 1
@@ -84,7 +84,7 @@ if __name__ == '__main__':
                 size_i = 6
                 size_o = 6
                 ls = 40
-                ep = 30
+                ep = 100
                 bs = 128
 
             print(f'training start on: {dataset} with cl: {cl}, rm: {rm}')
