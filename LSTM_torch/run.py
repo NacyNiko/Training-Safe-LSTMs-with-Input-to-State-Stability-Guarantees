@@ -102,5 +102,5 @@ if __name__ == '__main__':
             args.dynamic_K = dy
 
             lstm_train.main(args)
-            validation.main(args, piecewise=True)
+            validation.main(args, if_recoder=False, piecewise=True)
 
