@@ -172,7 +172,7 @@ class IssLstmTrainer:
                 else:
                     loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1]
 
-                weight_save.iloc[-1, -5:-7] = [gamma1.item() if isinstance(gamma1, torch.Tensor) else gamma1
+                weight_save.iloc[-1, -7:-5] = [gamma1.item() if isinstance(gamma1, torch.Tensor) else gamma1
                     , gamma2.item() if isinstance(gamma2, torch.Tensor) else gamma2]
                 weight_save.iloc[-1, -3:-1] = [gamma1.item() * reg_loss[0].item()
                                                if isinstance(gamma1, torch.Tensor) else gamma1 * reg_loss[0].item(),
