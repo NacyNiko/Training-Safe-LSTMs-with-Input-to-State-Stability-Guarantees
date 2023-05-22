@@ -29,7 +29,7 @@ parser.add_argument('--len_sequence', default=40, help='length of input sequence
 parser.add_argument(
     '--curriculum_learning', default='exp', choices=[None, '2part', '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
 parser.add_argument('--dynamic_K', default=False, type=bool)
-parser.add_argument('--PID_coefficient', default=([5, 10], [0.5, 0.5], [0.0, 0.0]), type=tuple)
+parser.add_argument('--PID_coefficient', default=([5, 10], [0.5, 2], [0.0, 0.0]), type=tuple)
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([0.0, 0.0]), help='value of gamma', type=torch.Tensor)
 parser.add_argument('--threshold', default=torch.tensor([-0.05, -0.1]), help='value of threshold', type=torch.Tensor)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
                 size_i = 6
                 size_o = 6
                 ls = 40
-                ep = 100
+                ep = 30
                 bs = 128
 
             print(f'training start on: {dataset} with cl: {cl}, rm: {rm}')
