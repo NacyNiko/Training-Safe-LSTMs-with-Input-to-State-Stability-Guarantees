@@ -2,6 +2,7 @@
 # @Time : 2023/2/13 20:35 
 # @Author : Yinan 
 # @File : regularizer.py
+import math
 
 import torch.nn as nn
 import torch
@@ -29,9 +30,9 @@ class PIDRegularizer(Regularizer):
         self.reg_loss = reg_loss
         self.loss = loss
         for i in range(2):
-            self.gamma[i] = self.Kp[i] * self.reg_loss[i].item() + \
-                    self.Ki[i] * self.acc_reg_loss[i] + \
-                    self.Kd[i] * (self.reg_loss[i].item() - self.prev_reg_loss[i])
+            self.gamma[i] = self.Kp[i].item() * self.reg_loss[i].item() + \
+                    self.Ki[i].item() * self.acc_reg_loss[i] + \
+                    self.Kd[i].item() * (self.reg_loss[i].item() - self.prev_reg_loss[i])
             self.acc_reg_loss[i] += self.reg_loss[i].item()
             self.prev_reg_loss[i] = self.reg_loss[i].item()
         return self.gamma[0], self.gamma[1]
@@ -104,9 +105,9 @@ class ExpRegularizer(Regularizer):
         temp = []
         for i in range(2):
             if self.reg_loss[i] < 0:
-                gamma = -torch.exp(max(self.reg_loss[i].detach(), -torch.tensor(3)))
+                gamma = -math.exp(max(self.reg_loss[i].item(), -10))
             else:
-                gamma = torch.exp(min(self.reg_loss[i].detach(), torch.tensor(3)))
+                gamma = math.exp(min(self.reg_loss[i].item(), 10))
             temp.append(gamma)
         gamma1, gamma2 = temp
         return gamma1, gamma2
@@ -122,7 +123,7 @@ class BlaRegularizer(Regularizer):
         temp = []
         for i in range(2):
             if self.reg_loss[i].detach() > 0:
-                gamma = self.loss.detach() * self.reg_loss[i].detach() / (self.reg_loss[0].detach() + self.reg_loss[1].detach())
+                gamma = self.loss.item() * self.reg_loss[i].item() / (self.reg_loss[0].item() + self.reg_loss[1].item())
             else:
                 gamma = 0
             temp.append(gamma)
