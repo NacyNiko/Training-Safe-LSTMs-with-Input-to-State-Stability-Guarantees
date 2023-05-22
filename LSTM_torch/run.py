@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     for cl, rm, dy in [('exp', 'vanilla', False)]:
         # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
-        for dataset in ['pHdata', 'robot_forward']:
+        for dataset in ['robot_forward']:
             if dataset == 'pHdata':
                 hs = 5
                 l = 1
