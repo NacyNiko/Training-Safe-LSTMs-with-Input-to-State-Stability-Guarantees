@@ -14,13 +14,13 @@ import numpy as np
 
 parser = argparse.ArgumentParser(description='Input state stable LSTM')
 parser.add_argument('--device', default='cuda:0', choices=['cpu', 'cuda:0', 'cuda:1', 'cuda:2', 'cuda:3'])
-parser.add_argument('--dataset', default='robot_forward', choices=['pHdata', 'robot_forward', 'coupled electric drives'], help='LSTM dataset')
-parser.add_argument('--hidden_size', default=250, help='hidden size of LSTM', type=int)
+parser.add_argument('--dataset', default='pHdata', choices=['pHdata', 'robot_forward', 'coupled electric drives'], help='LSTM dataset')
+parser.add_argument('--hidden_size', default=5, help='hidden size of LSTM', type=int)
 
-parser.add_argument('--input_size', default=6, help='input size of LSTM', type=int)
-parser.add_argument('--output_size', default=6, help='output size of output layer', type=int)
+parser.add_argument('--input_size', default=1, help='input size of LSTM', type=int)
+parser.add_argument('--output_size', default=1, help='output size of output layer', type=int)
 parser.add_argument('--layers', default=1, help='number of layers of LSTM', type=int)
-parser.add_argument('--batch_size', default=128, help='train batch size', type=int)
+parser.add_argument('--batch_size', default=64, help='train batch size', type=int)
 parser.add_argument('--epochs', default=100, help='maximum train epochs', type=int)
 parser.add_argument('--tolerance', default=-1e-3, help='minimum tolerance of loss', type=float)
 parser.add_argument('--tol_stop', default=-0.001, help='minimum tolerance between 2 epochs', type=float)
@@ -29,9 +29,9 @@ parser.add_argument('--len_sequence', default=40, help='length of input sequence
 parser.add_argument(
     '--curriculum_learning', default='exp', choices=[None, '2part', '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
 parser.add_argument('--dynamic_K', default=False, type=bool)
-parser.add_argument('--PID_coefficient', default=([10, 0.5], [0.1, 0.01], [0., 0.]), type=tuple)
+parser.add_argument('--PID_coefficient', default=([0.1, 0.5], [0.01, 0.05], [0.0, 0.0]), type=tuple)
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
-parser.add_argument('--gamma', default=torch.tensor([1., 1.]), help='value of gamma', type=torch.Tensor)
+parser.add_argument('--gamma', default=torch.tensor([0.0, 0.0]), help='value of gamma', type=torch.Tensor)
 parser.add_argument('--threshold', default=torch.tensor([-0.05, -0.1]), help='value of threshold', type=torch.Tensor)
 
 
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     for cl, rm, dy in [('PID', 'vanilla', False)]:
         # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
-        for dataset in ['robot_forward']:
+        for dataset in ['pHdata']:
             if dataset == 'pHdata':
                 hs = 5
                 l = 1
