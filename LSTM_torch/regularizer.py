@@ -19,20 +19,26 @@ class Regularizer(nn.Module):
 
 
 class PIDRegularizer(Regularizer):
-    def __init__(self, k):
+    def __init__(self, k, dynamic):
         super(PIDRegularizer, self).__init__()
         self.prev_reg_loss = [0, 0]
         self.acc_reg_loss = [0, 0]
         self.Kp, self.Ki, self.Kd = k
         self.gamma = [0, 0]
+        self.dynamic = dynamic
 
     def forward(self, loss, reg_loss):
         self.reg_loss = reg_loss
         self.loss = loss
         for i in range(2):
-            self.gamma[i] = self.Kp[i].item() * self.reg_loss[i].item() + \
-                    self.Ki[i].item() * self.acc_reg_loss[i] + \
-                    self.Kd[i].item() * (self.reg_loss[i].item() - self.prev_reg_loss[i])
+            if self.dynamic:
+                self.gamma[i] = self.Kp[i].item() * self.reg_loss[i].item() + \
+                        self.Ki[i].item() * self.acc_reg_loss[i] + \
+                        self.Kd[i].item() * (self.reg_loss[i].item() - self.prev_reg_loss[i])
+            else:
+                self.gamma[i] = self.Kp[i] * self.reg_loss[i].item() + \
+                        self.Ki[i] * self.acc_reg_loss[i] + \
+                        self.Kd[i] * (self.reg_loss[i].item() - self.prev_reg_loss[i])
             self.acc_reg_loss[i] += self.reg_loss[i].item()
             self.prev_reg_loss[i] = self.reg_loss[i].item()
         return self.gamma[0], self.gamma[1]

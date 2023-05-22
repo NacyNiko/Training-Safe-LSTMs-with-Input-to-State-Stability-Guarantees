@@ -115,7 +115,7 @@ class IssLstmTrainer:
             elif self.curriculum_learning == '2zero':
                 self.regularizer = ToZeroRegularizer()
             elif self.curriculum_learning == 'PID':   # control reg loss to 0 with variable threshold
-                self.regularizer = PIDRegularizer(self.K_pid)
+                self.regularizer = PIDRegularizer(self.K_pid, self.dynamic_k)
             elif self.curriculum_learning == 'IncrePID':
                 self.regularizer = Incremental_PIDRegularizer(self.K_pid)
             else:
@@ -144,7 +144,7 @@ class IssLstmTrainer:
                     overshoot, response, steady_error = self.loss_saver.add_loss(torch.tensor([reg_loss]), epoch)
                     dynamic_k = Pid_NN(batch_cases.reshape(-1)).to(torch.float32).to(device)
                     k_list = pd.concat([k_list, pd.DataFrame(dynamic_k.cpu().detach().numpy().reshape(1, -1))], axis=0)
-                    self.regularizer = PIDRegularizer(dynamic_k)
+                    self.regularizer = PIDRegularizer(dynamic_k, self.dynamic_k)
 
                 # relu_loss_fcn = LossRelu()
                 # _, relu_loss = relu_loss_fcn(constraints, self.threshold)
