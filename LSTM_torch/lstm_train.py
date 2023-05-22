@@ -91,7 +91,7 @@ class IssLstmTrainer:
         gamma2 = self.gamma2
 
         weight_save = pd.DataFrame(columns=['norm i', 'sigmoid norm i',  'norm o', 'sigmoid norm o'
-            , 'norm f', 'sigmoid norm f', 'norm cell state', 'c1', 'c2', 'reg_loss1', 'reg_loss2', 'loss_'])
+            , 'norm f', 'sigmoid norm f', 'norm cell state', 'c1', 'c2', 'gamma1', 'gamma2', 'reg_loss1', 'reg_loss2', 'loss_'])
 
         # loss function
         if self.reg_methode == 'log_barrier_BLS':
@@ -172,6 +172,7 @@ class IssLstmTrainer:
                 else:
                     loss = loss_ + gamma1 * reg_loss[0] + gamma2 * reg_loss[1]
 
+                weight_save.iloc[-1, -5:-7] = [gamma1.item(), gamma2.item()]
                 weight_save.iloc[-1, -3:-1] = [gamma1.item() * reg_loss[0].item()
                                                if isinstance(gamma1, torch.Tensor) else gamma1 * reg_loss[0].item(),
                                                    gamma2.item() * reg_loss[1].item()
