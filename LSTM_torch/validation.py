@@ -419,7 +419,7 @@ def main(args, if_recoder, piecewise=False):
                                                                  , args.reg_methode))
 
     for model in models:
-        for hw in [60]:
+        for hw in [1, 15, 35, 45, 60]:
             temp1 = model[:-4] + f'_{hw}_val.jpg'
             temp2 = model[:-4] + f'_{hw}_train.jpg'
             if not (temp1 in save_jpgs or temp2 in save_jpgs):
