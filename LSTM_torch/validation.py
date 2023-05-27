@@ -276,18 +276,24 @@ class Validator:
                     plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], horizon_window, 'train' if n else 'val'),
                                 bbox_inches='tight',
                                 dpi=500)
-                    if z == 8:
-                        figr, axr = plt.subplots(6, 1, figsize=(12, 3), sharex=True)
+                    if z == 6:
+                        figr, axr = plt.subplots(6, 1, figsize=(15, 7), sharex=True)
+                        lines, labels = [], []
                         for i in range(6):
-                            axr[i].plot(range(z*self.seq_len, z*self.seq_len+horizon_window)
-                                       , predictions[1 + z * self.seq_len:1 + z * self.seq_len + horizon_window, i], color='m', label='pred', alpha=0.8)
-                            axr[i].plot(data_y[:z * self.seq_len+horizon_window, i], color='c', label='real', linestyle='--', alpha=0.5)
-                            axr[i].plot(range((z-1)*self.seq_len, z*self.seq_len+1), data_y[(z-1)*self.seq_len: z*self.seq_len+1, i], color='darkorange')
+                            line1, = axr[i].plot(range(z*self.seq_len, z*self.seq_len+horizon_window)
+                                       , predictions[1 + z * self.seq_len:1 + z * self.seq_len + horizon_window, i], color='m', alpha=0.8)
+                            line2, = axr[i].plot(data_y[:z * self.seq_len+horizon_window, i], color='c', linestyle='--', alpha=0.5)
+                            line3, = axr[i].plot(range((z-1)*self.seq_len, z*self.seq_len+1), data_y[(z-1)*self.seq_len: z*self.seq_len+1, i], label='input sequence', color='darkorange')
 
-                            # axr[i].set_ylabel(f'q{i+1} [deg]', fontsize=3)
-                            # axr[i].tick_params(axis='both', labelsize=14)
-
-                        axr[5].set_xlabel('Time', fontsize=13)
+                            axr[i].set_ylabel(f'q{i+1} [deg]', fontsize=10)
+                            axr[i].tick_params(axis='both', labelsize=12)
+                            if i == 0:
+                                lines.append(line1)
+                                lines.append(line2)
+                                lines.append(line3)
+                                labels += ['prediction trajectory', 'real trajectory', 'input sequence']
+                        axr[5].set_xlabel('Time [s]', fontsize=12)
+                        figr.legend(lines, labels, loc='center right', bbox_to_anchor=(0.9, 0.95))
                         plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], horizon_window, 'prediction'),
                                     bbox_inches='tight',
                                     dpi=500)
@@ -365,7 +371,7 @@ class Validator:
                     ax[j].set_title('NRMSE on {} set: {:.3f}, R2: {}'.format('train' if n else 'val', float(fit_score), float(r2)))
                     j += 1
 
-                    if z == 50:
+                    if z == 24:
                         fig_, ax_ = plt.subplots(1, 1, figsize=(12, 3))
                         ax_.plot(data_y[:z * self.seq_len+horizon_window], color='c', label='real trajectory', linestyle='--', alpha=0.6)
                         ax_.plot(range((z-1) * self.seq_len, z * self.seq_len+1)
@@ -374,8 +380,8 @@ class Validator:
                                  , predictions[z * self.seq_len:z * self.seq_len+horizon_window], color='m', label='prediction trajectory', alpha=0.8)
                         ax_.tick_params(labelsize=5)
                         ax_.legend(loc='best')
-                        ax_.set_xlabel('Time', fontsize=15)
-                        ax_.set_ylabel('pH', fontsize=15)
+                        ax_.set_xlabel('Time [s]', fontsize=15)
+                        ax_.set_ylabel('pH($q_{4}$)', fontsize=15)
                         ax_.tick_params(axis='both', labelsize=14)
                         plt.savefig('./results{}_{}_{}.jpg'.format(path[6:-4], horizon_window, 'prediction'),
                                     bbox_inches='tight',
@@ -419,7 +425,7 @@ def main(args, if_recoder, piecewise=False):
                                                                  , args.reg_methode))
 
     for model in models:
-        for hw in [1, 15, 35, 45, 60]:
+        for hw in [1, 15, 30, 45, 60]:
             temp1 = model[:-4] + f'_{hw}_val.jpg'
             temp2 = model[:-4] + f'_{hw}_train.jpg'
             if not (temp1 in save_jpgs or temp2 in save_jpgs):
