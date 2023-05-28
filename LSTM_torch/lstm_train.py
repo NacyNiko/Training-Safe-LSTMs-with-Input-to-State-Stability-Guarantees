@@ -215,11 +215,11 @@ class IssLstmTrainer:
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
-        with open(folder_path + f'/weights_{self.reg_methode}_{self.curriculum_learning}.pkl', 'wb') as f:
+        with open(folder_path + f'/weights_{self.reg_methode}_{self.curriculum_learning}_{times/self.max_epochs}.pkl', 'wb') as f:
             pickle.dump(weight_save, f)
 
         if self.dynamic_k:
-            k_list.to_csv(folder_path + f'/K_{self.reg_methode}_{self.curriculum_learning}.csv', index=False)
+            k_list.to_csv(folder_path + f'/K_{self.reg_methode}_{self.curriculum_learning}_{times/self.max_epochs}.csv', index=False)
 
     def save_model(self, methode, curriculum_learning, model, gamma, times, thd):
         """ model save path """

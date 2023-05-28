@@ -32,7 +32,7 @@ parser.add_argument('--dynamic_K', default=False, type=bool)
 parser.add_argument('--PID_coefficient', default=([0.5, 5000], [0.1, 0.5], [0.0, 0.5]), type=tuple)
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([1, 1]), help='value of gamma', type=torch.Tensor)
-parser.add_argument('--threshold', default=torch.tensor([-0.02, -0.05]), help='value of threshold', type=torch.Tensor)
+parser.add_argument('--threshold', default=torch.tensor([0.05, 0.1]), help='value of threshold', type=torch.Tensor)
 
 
 if __name__ == '__main__':
@@ -67,40 +67,42 @@ if __name__ == '__main__':
     #     print(f'total times:{-start+end}')
     #     validation.main(parser.parse_args(), if_recoder=False, piecewise=True)
 
-    for cl, rm, dy in [('PID', 'vanilla', True)]:
+    for cl, rm, dy in [(None, 'relu', False), ('2part', 'vanilla', False), ('2zero', 'vanilla', False)
+        , ('balance', 'relu', False), ('exp', 'vanilla', False)]:
         # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
-        for dataset in ['robot_forward']:
-            if dataset == 'pHdata':
-                hs = 5
-                l = 1
-                size_i = 1
-                size_o = 1
-                ls = 10
-                ep = 100
-                bs = 64
-            else:
-                hs = 250
-                l = 1
-                size_i = 6
-                size_o = 6
-                ls = 40
-                ep = 30
-                bs = 128
+        for dataset in ['pHdata', 'robot_forward']:
+            for _ in range(5):
+                if dataset == 'pHdata':
+                    hs = 5
+                    l = 1
+                    size_i = 1
+                    size_o = 1
+                    ls = 10
+                    ep = 100
+                    bs = 64
+                else:
+                    hs = 250
+                    l = 1
+                    size_i = 6
+                    size_o = 6
+                    ls = 40
+                    ep = 50
+                    bs = 128
 
-            print(f'training start on: {dataset} with cl: {cl}, rm: {rm}')
-            args = parser.parse_args()
-            args.dataset = dataset
-            args.hidden_size = hs
-            args.len_sequence = ls
-            args.layers = l
-            args.input_size = size_i
-            args.output_size = size_o
-            args.curriculum_learning = cl
-            args.reg_methode = rm
-            args.epochs = ep
-            args.batch_size = bs
-            args.dynamic_K = dy
+                print(f'training start on: {dataset} with cl: {cl}, rm: {rm}')
+                args = parser.parse_args()
+                args.dataset = dataset
+                args.hidden_size = hs
+                args.len_sequence = ls
+                args.layers = l
+                args.input_size = size_i
+                args.output_size = size_o
+                args.curriculum_learning = cl
+                args.reg_methode = rm
+                args.epochs = ep
+                args.batch_size = bs
+                args.dynamic_K = dy
 
-            lstm_train.main(args)
-            validation.main(args, if_recoder=False, piecewise=True)
+                lstm_train.main(args)
+                validation.main(args, if_recoder=False, piecewise=True)
 
