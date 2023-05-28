@@ -67,7 +67,8 @@ if __name__ == '__main__':
     #     print(f'total times:{-start+end}')
     #     validation.main(parser.parse_args(), if_recoder=False, piecewise=True)
 
-    for cl, rm, dy in [('PID', 'vanilla', True)]:
+    for cl, rm, dy in [(None, 'relu', False), ('2part', 'vanilla', False)
+        , ('2zero', 'vanilla', False), ('balance', 'relu', False), ('exp', 'vanilla', False)]:
         # (None, 'relu'), ('2part', 'vanilla'), ('2zero', 'vanilla'), ('balance', 'relu'), ('exp', 'vanilla')
         for dataset in ['robot_forward']:
             for _ in range(5):
@@ -85,7 +86,7 @@ if __name__ == '__main__':
                     size_i = 6
                     size_o = 6
                     ls = 40
-                    ep = 50
+                    ep = 30
                     bs = 128
 
                 print(f'training start on: {dataset} with cl: {cl}, rm: {rm}')
