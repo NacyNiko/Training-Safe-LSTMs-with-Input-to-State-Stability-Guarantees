@@ -29,10 +29,10 @@ parser.add_argument('--len_sequence', default=40, help='length of input sequence
 parser.add_argument(
     '--curriculum_learning', default='exp', choices=[None, '2part', '2zero', 'balance', 'exp', 'PID', 'IncrePID'], help='apply curriculum_learning or not')
 parser.add_argument('--dynamic_K', default=False, type=bool)
-parser.add_argument('--PID_coefficient', default=([0.2, 0.5], [0.01, 0.01], [0.0, 0.0]), type=tuple)
+parser.add_argument('--PID_coefficient', default=([0.2, 0.5], [0.01, 1.5], [0.0, 0.1]), type=tuple)
 parser.add_argument('--reg_methode', default='vanilla', choices=['relu', 'log_barrier_BLS', 'vanilla'], help='regularization methode')
 parser.add_argument('--gamma', default=torch.tensor([1, 1]), help='value of gamma', type=torch.Tensor)
-parser.add_argument('--threshold', default=torch.tensor([0.02, 0.05]), help='value of threshold', type=torch.Tensor)
+parser.add_argument('--threshold', default=torch.tensor([-0.05, -0.1]), help='value of threshold', type=torch.Tensor)
 
 
 if __name__ == '__main__':
@@ -67,10 +67,10 @@ if __name__ == '__main__':
     #     print(f'total times:{-start+end}')
     #     validation.main(parser.parse_args(), if_recoder=False, piecewise=True)
 
-    for cl, rm, dy in [('balance', 'vanilla', False), ('exp', 'vanilla', False)]:
+    for cl, rm, dy in [('PID', 'vanilla', False)]:
         # (None, 'relu', False), ('2part', 'vanilla', False)
         #         , ('2zero', 'vanilla', False), ('balance', 'relu', False), ('exp', 'vanilla', False)
-        for dataset in ['pHdata', 'robot_forward']:
+        for dataset in ['robot_forward']:
             for _ in range(3):
                 if dataset == 'pHdata':
                     hs = 5
